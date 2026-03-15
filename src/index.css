@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* Professional design system - healthcare/wellness */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Primary - refined teal (trust, calm, professional) */
+  --color-primary: #0D9488;
+  --color-primary-hover: #0F766E;
+  --color-primary-light: #14B8A6;
+  --color-primary-muted: #5EEAD4;
+  --color-primary-subtle: #CCFBF1;
+
+  /* Neutrals */
+  --color-bg: #F8FAFC;
+  --color-bg-elevated: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+
+  /* Text */
+  --color-text: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+
+  /* Semantic */
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+
+  /* Mood palette - refined */
+  --color-mood-calm: #0D9488;
+  --color-mood-worried: #D97706;
+  --color-mood-sad: #6366F1;
+  --color-mood-angry: #DC2626;
+  --color-mood-exhausted: #64748B;
+
+  /* Shadows - subtle, professional */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+}
+
+.pt-safe { padding-top: var(--safe-top); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+
+/* Animations - refined, purposeful */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+@keyframes breathe-in-out {
+  0%, 100% { transform: scale(0.75); }
+  50% { transform: scale(1.2); }
+}
+@keyframes countdown-pop {
+  0% { transform: scale(1.15); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(2px, -3px) scale(1.02); }
+  66% { transform: translate(-1px, 2px) scale(0.98); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in { animation: fade-in 0.3s var(--ease-out) forwards; }
+.animate-fade-in-up { animation: fade-in-up 0.4s var(--ease-out) forwards; }
+.animate-gentle-float { animation: gentle-float 2.5s ease-in-out infinite; }
+.animate-soft-pulse { animation: soft-pulse 2s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+#root { min-height: 100dvh; }
+
+/* Professional card interaction */
+.card-interactive {
+  transition: transform var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+.card-interactive:active {
+  transform: translateY(0);
+}
+
+/* Legacy alias */
+.card-lift {
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
+}
+.card-lift:hover, .card-lift:active {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
