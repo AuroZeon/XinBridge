@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation } from '../i18n/context'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { images } from '../data/mediaAssets'
 
 export default function DoctorQuestions() {
+  const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
   const t = useTranslation()
   const doc = t.doctor as Record<string, string>
   const suggestedQuestions = (t.suggestedQuestions as string[]) ?? []
@@ -29,15 +29,15 @@ export default function DoctorQuestions() {
   }
 
   return (
-    <div className="min-h-dvh pt-safe pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
+    <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
         <img src={images.sunshine} alt="" className="w-full h-full object-cover opacity-[0.12]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
-      <header className="flex items-center justify-between gap-4 py-4">
-        <Link to="/" className="text-[var(--color-primary)] text-sm">← {String(t.back)}</Link>
-        <h1 className="text-xl font-semibold">{String(doc.title)}</h1>
-        <LanguageSwitcher />
+      <header className="header-safe flex items-center justify-between gap-4 pb-4 px-1">
+        <Link to={backTo} className="text-[var(--color-primary)] text-sm">← {String(t.back)}</Link>
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">{String(doc.title)}</h1>
+        <span className="w-10" aria-hidden />
       </header>
 
       <p className="text-sm text-[var(--color-text-secondary)] mb-6">

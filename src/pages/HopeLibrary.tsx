@@ -1,15 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getHopeStories, getStoryCategories, getCancerTypes } from '../data/hopeStories'
 import type { HopeStory } from '../data/hopeStories'
 import { useTranslation, useLocale } from '../i18n/context'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { RefreshCw } from '../components/icons'
-import { images } from '../data/mediaAssets'
+import { images, logo } from '../data/mediaAssets'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export default function HopeLibrary() {
+  const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
   const t = useTranslation()
   const locale = useLocale()
   const hope = t.hope as Record<string, string>
@@ -47,7 +47,8 @@ export default function HopeLibrary() {
         return
       }
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Refresh failed')
+        setRefreshError(String(hope.refreshError))
+        return
       }
       const stories = data.stories || []
       setRefreshedStories((prev) => {
@@ -55,12 +56,12 @@ export default function HopeLibrary() {
         const added = stories.filter((s: HopeStory) => !seen.has(s.id))
         return [...added, ...prev]
       })
-    } catch (err) {
-      setRefreshError(err instanceof Error ? err.message : 'Refresh failed')
+    } catch {
+      setRefreshError(String(hope.refreshError))
     } finally {
       setRefreshing(false)
     }
-  }, [cancerFilter, locale])
+  }, [cancerFilter, locale, hope])
 
   const filtered = useMemo(() => {
     let list = allStories
@@ -76,18 +77,20 @@ export default function HopeLibrary() {
 
   return (
     <div className="min-h-dvh pt-safe pb-safe pb-12 bg-[var(--color-bg)]">
-      <div className="relative -mx-4 mb-6 h-32 overflow-hidden rounded-b-2xl">
+      <div className="relative -mx-4 mb-6 h-36 overflow-hidden rounded-b-2xl">
         <img src={images.flowers} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
-          <h1 className="text-xl font-semibold text-white animate-fade-in-up">{String(hope.title)}</h1>
-          <p className="text-sm text-white/90 mt-0.5 animate-fade-in-up stagger-1">{String(hope.subtitle)}</p>
+        <div className="absolute bottom-5 left-5 right-5 flex items-center gap-4">
+          <img src={logo} alt="XinBridge" className="w-12 h-12 rounded-full object-contain bg-white/20 shrink-0" />
+          <div>
+            <h1 className="text-xl font-semibold text-white tracking-tight animate-fade-in-up" style={{ letterSpacing: '-0.02em' }}>{String(hope.title)}</h1>
+            <p className="text-sm text-white/90 mt-1 animate-fade-in-up stagger-1">{String(hope.subtitle)}</p>
+          </div>
         </div>
       </div>
       <div className="px-4">
-      <header className="flex items-center justify-between gap-4 py-3 mb-4">
-        <Link to="/" className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
-        <LanguageSwitcher />
+      <header className="flex items-center justify-between gap-4 py-4 mb-4">
+        <Link to={backTo} className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
       </header>
 
       <div className="flex items-center gap-2 mb-4">
@@ -163,9 +166,6 @@ export default function HopeLibrary() {
           />
         ))}
       </div>
-      <p className="mt-6 text-[10px] text-[var(--color-text-secondary)]/70 text-center">
-        Photos by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="underline">Unsplash</a>
-      </p>
       </div>
     </div>
   )

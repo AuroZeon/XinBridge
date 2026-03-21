@@ -33,6 +33,14 @@ const patterns: Record<string, { zh: string; en: string }> = {
     zh: '这种憋屈、想发泄的感觉很正常。生病让人无力，很多事情控制不了，愤怒常常是恐惧和委屈的另一种表达。\n\n建议：先试试本应用的「呼吸练习」— 选择愤怒时会进入冷静模式，一起做几次深呼吸。也可以把此刻的感受写下来，或者找个安静的地方待一会儿。你随时可以在这里说，我都在听。',
     en: "That pent-up, want-to-lash-out feeling is normal. Illness can make you feel powerless; anger is often fear and frustration in disguise.\n\nSuggestion: Try the Breathing exercise—selecting anger enters cool-down mode. A few deep breaths together can help. You can also write down how you feel or find a quiet spot. I'm here whenever you want to talk.",
   },
+  sos: {
+    zh: '我在这里。深呼吸。\n\n请立即：\n• 打开「快速 SOS」开始呼吸或联系家人\n• 打开「家人联系」让家人知道你需要陪伴\n\n你并不孤单。',
+    en: "I'm here. Take a breath.\n\nRight now:\n• Open Quick SOS to breathe or contact family\n• Open Family Contact to let family know you need support\n\nYou're not alone.",
+  },
+  unsafe: {
+    zh: '我在这里陪着你。如果你需要立刻的支持，请点击下方的「快速 SOS」或「家人联系」。你并不孤单。',
+    en: "I'm here with you. If you need immediate support, tap Quick SOS or Family Contact below. You're not alone.",
+  },
   default: {
     zh: '我听到了。你的感受都是真实的，无论是什么。\n\n建议：如果想放松一下，可以试试「呼吸练习」或「夜晚陪伴」。如果需要家人知道，可以用「家人联系」。也可以继续在这里说，我都在听。',
     en: "I hear you. Whatever you're feeling is valid.\n\nSuggestion: To relax, try Breathing or Night Support. To let family know, use Family Contact. Or keep talking here—I'm listening.",
@@ -40,6 +48,7 @@ const patterns: Record<string, { zh: string; en: string }> = {
 }
 
 const keywordPatterns = [
+  { keywords: ['sos', 'i give up', '救命', '放弃', '受不了了', '撑不住了'], key: 'sos' },
   { keywords: ['打人', '想打', '愤怒', '生气', '烦躁', '憋屈', '想发泄', '受不了'], key: 'angry' },
   { keywords: ['scared', 'afraid', 'nervous', '害怕', '紧张', '恐惧'], key: 'scared' },
   { keywords: ['treatment', 'chemo', 'therapy', '治疗', '化疗', '放疗', '复查'], key: 'treatment' },
@@ -50,7 +59,8 @@ const keywordPatterns = [
   { keywords: ['sleep', '失眠', '睡不着', '睡不好'], key: 'sleep' },
 ]
 
-export function getAIResponse(userMessage: string, locale: Locale = 'zh'): string {
+export function getAIResponse(userMessage: string, locale: Locale = 'zh', forceKey?: string): string {
+  if (forceKey && forceKey in patterns) return (patterns as Record<string, { zh: string; en: string }>)[forceKey][locale]
   const lower = userMessage.toLowerCase()
   for (const { keywords, key } of keywordPatterns) {
     if (keywords.some((k) => lower.includes(k))) {

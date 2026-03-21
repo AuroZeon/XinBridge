@@ -3,9 +3,9 @@
  * Each template uses {cancer} and {years} placeholders.
  */
 const SOURCES = [
-  { name: 'American Cancer Society', url: 'https://www.cancer.org/survivorship/survivor-stories.html' },
-  { name: 'Cancer Research UK', url: 'https://www.cancerresearchuk.org/about-cancer/cancer-stories' },
-  { name: '中国抗癌协会', url: 'https://www.caca.org.cn' },
+  { name: 'American Cancer Society', url: 'https://www.cancer.org/cancer/latest-news/stories-of-hope.html' },
+  { name: 'Cancer Research UK', url: 'https://news.cancerresearchuk.org/category/personal-stories' },
+  { name: '中国抗癌协会', url: 'http://www.caca.org.cn/azkf/kamx/' },
   { name: 'National Cancer Institute', url: 'https://www.cancer.gov/about-cancer/coping/survivorship' },
 ] as const
 
@@ -139,6 +139,7 @@ export const STORY_TEMPLATES: StoryTemplate[] = [
   {
     titleZh: '{cancer}：术后饮食慢慢来',
     titleEn: '{cancer}: Eating After Surgery',
+    allowedCancers: ['stomach', 'colorectal', 'pancreatic', 'esophageal', 'liver', 'headneck', 'ovarian'],
     excerptZh: '「少吃多餐，身体会适应。」',
     excerptEn: '"Small, frequent meals—your body will adapt."',
     contentZh: '手术后，消化系统需要时间适应。我一开始吃几口就饱，两小时后又饿得慌，还容易反酸。营养师说这是正常的，教我要少吃多餐：每顿只吃小半碗，一天吃五到六顿，选软烂易消化的——粥、烂面条、蒸蛋、鱼肉泥。避免油腻、辛辣、生冷。\n\n头三个月确实难受，但我坚持按营养师的建议来。慢慢发现，胃好像「学会」了新的容量，饱腹感持续时间变长了。半年后，我可以正常吃三餐加一点加餐，体重也稳定下来。现在每年复查，营养指标都正常。\n\n{years}年了，想告诉病友：术后饮食要耐心，别着急。身体会适应，一天比一天好。',

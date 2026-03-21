@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getMoodMessage } from '../data/moodMessages'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { MoodIcons } from '../components/icons'
 import { images } from '../data/mediaAssets'
 import type { MoodType } from '../types'
@@ -31,6 +30,10 @@ export default function MoodCheckIn() {
   const handleSelectMood = (mood: MoodType) => {
     setSelectedMood(mood)
     setShowResult(true)
+    const today = new Date().toISOString().slice(0, 10)
+    setItem('moodCheckInDate', today)
+    setItem('lastMood', mood)
+    setItem('lastMoodDate', today)
   }
 
   const handleTryActivity = () => {
@@ -44,15 +47,15 @@ export default function MoodCheckIn() {
   }
 
   return (
-    <div className="min-h-dvh pt-safe pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
+    <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
         <img src={images.flowers} alt="" className="w-full h-full object-cover opacity-[0.12]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
-      <header className="flex items-center justify-between gap-4 py-4">
+      <header className="header-safe flex items-center justify-between gap-4 pb-4 px-1">
         <Link to="/" className="text-[var(--color-primary)] text-sm font-medium">{String(t.back)}</Link>
         <h1 className="text-lg font-semibold text-[var(--color-text)]">{String(moodT.title)}</h1>
-        <LanguageSwitcher />
+        <span className="w-10" aria-hidden />
       </header>
 
       {selectedMood && showResult ? (

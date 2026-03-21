@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ChevronRight,
   RefreshCw,
+  Volume2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -36,4 +37,4 @@ export const MoodIcons: Record<string, LucideIcon> = {
   exhausted: Moon,
 }
 
-export { HeartHandshake, CheckCircle2, Wind, ChevronRight, RefreshCw }
+export { HeartHandshake, CheckCircle2, Wind, Moon, BookOpen, Volume2, ChevronRight, RefreshCw }

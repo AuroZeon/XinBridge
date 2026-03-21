@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
-import { useTranslation } from '../i18n/context'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { useTranslation, useLocale } from '../i18n/context'
 import { HeartHandshake, ChevronRight } from '../components/icons'
-import { images, menuImages } from '../data/mediaAssets'
+import { images, logo, menuImages } from '../data/mediaAssets'
+import { getWisdomPills } from '../data/wisdomPills'
+import { getContextualGreeting } from '../data/contextualGreeting'
+import { useWellnessProgress } from '../hooks/useWellnessProgress'
 
 const menuIds = ['mood', 'chat', 'symptoms', 'doctor', 'breathing', 'sleep', 'caregiver', 'hope'] as const
 const menuPaths: Record<string, string> = {
@@ -12,14 +14,42 @@ const menuPaths: Record<string, string> = {
   breathing: '/breathing', sleep: '/sleep', caregiver: '/caregiver', hope: '/hope',
 }
 
+function getHour(): number {
+  return new Date().getHours()
+}
+
 export default function Home() {
   const t = useTranslation()
+  const locale = useLocale()
   const [nextTreatment, setNextTreatment] = useState('')
   const [showDateInput, setShowDateInput] = useState(false)
+  const [hour, setHour] = useState(getHour)
+  const [expanded, setExpanded] = useState(false)
+
+  const { moodDone, symptomDone, breathingDone, completed, progress } = useWellnessProgress()
+  const wisdomPills = getWisdomPills(locale)
+
+  const symptomLogs = getItem<{ date: string; pain?: number; fatigue?: number }[]>('symptoms', [])
+  const { greeting, subtitle } = getContextualGreeting(hour, locale, symptomLogs)
 
   useEffect(() => {
     setNextTreatment(getItem<string>('nextTreatment', ''))
   }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setHour(getHour()), 60000)
+    return () => clearInterval(id)
+  }, [])
+
+  const isNight = hour >= 23 || hour < 5
+  const isMorning = hour >= 6 && hour < 11
+  const isNightWatchman = hour >= 1 && hour < 4
+  const nightCollapsed = isNight && !expanded
+  const visibleMenuIds = isNightWatchman && !expanded
+    ? (['sleep', 'chat'] as const)
+    : nightCollapsed
+      ? (['sleep'] as const)
+      : menuIds
 
   const saveNextTreatment = () => {
     setItem('nextTreatment', nextTreatment)
@@ -43,69 +73,87 @@ export default function Home() {
     : ''
 
   return (
-    <div className="min-h-dvh pt-safe pb-safe pb-16 overflow-x-hidden bg-[var(--color-bg)]">
-      {/* Hero - dark background, high-contrast white text */}
+    <div
+      className={`min-h-dvh pt-safe pb-safe pb-16 overflow-x-hidden transition-colors duration-500 relative ${
+        isNight ? 'night-filter bg-[#1a1f2e]' : 'bg-[var(--color-bg)]'
+      }`}
+    >
+      {/* Night Watchman dim overlay (1–4 AM) */}
+      {isNightWatchman && (
+        <div
+          className="absolute inset-0 z-[100] pointer-events-none bg-black/40 transition-opacity duration-500"
+          aria-hidden="true"
+        />
+      )}
+      {/* Hope Ticker - micro-pills of wisdom */}
+      <div className="relative overflow-hidden border-b border-white/10 bg-[var(--color-primary)]/10 py-2.5">
+        <div className="flex w-max animate-ticker whitespace-nowrap gap-8 px-4">
+          {(wisdomPills.concat(wisdomPills)).map((pill, i) => (
+            <span key={i} className="text-sm text-[var(--color-text-secondary)] font-medium">
+              {pill}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Hero */}
       <header className="relative -mx-4 mb-0 overflow-hidden">
-        {/* Dark gradient - no image, consistent contrast */}
+        <img src={images.heroSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div
-          className="absolute inset-0 h-52 min-h-[200px]"
+          className="absolute inset-0 min-h-[200px]"
           style={{
-            background: 'linear-gradient(155deg, #0c4a3e 0%, #0f766e 35%, #0d9488 70%, #0f766e 100%)',
+            background: 'linear-gradient(155deg, rgba(12,74,62,0.92) 0%, rgba(15,118,110,0.88) 40%, rgba(13,148,136,0.85) 70%, rgba(15,118,110,0.9) 100%)',
           }}
         />
-        {/* Subtle accent - soft glow */}
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 70%)',
-          }}
-        />
-        {/* Content - white text, strong contrast */}
-        <div className="relative z-20 flex flex-col justify-end px-5 pt-12 pb-6">
-          <div className="absolute top-4 right-4 z-30">
-            <LanguageSwitcher variant="light" />
-          </div>
-          <h1
-            className="font-bold text-white tracking-tight animate-fade-in-up"
-            style={{
-              fontFamily: "'Outfit', 'Inter', sans-serif",
-              fontSize: 'clamp(1.75rem, 5vw, 2.25rem)',
-              lineHeight: 1.15,
-              textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
-            }}
-          >
-            {String(home.title)}
+        <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-8 left-[15%] w-2 h-2 rounded-full bg-white/30 animate-soft-pulse" style={{ animationDelay: '0s' }} />
+          <div className="absolute top-16 right-[20%] w-1.5 h-1.5 rounded-full bg-white/25 animate-gentle-float" style={{ animationDelay: '0.5s' }} />
+        </div>
+        <div className="relative z-20 flex flex-col justify-end px-6 pt-12 pb-10 min-h-[180px]">
+          <img src={logo} alt="XinBridge" className="w-14 h-14 rounded-full object-contain bg-white/10 backdrop-blur-sm mb-3 animate-gentle-scale-in shadow-lg" />
+          <h1 className="font-bold text-white tracking-tight animate-fade-in-up" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: 'clamp(1.5rem, 5vw, 2.25rem)', lineHeight: 1.2 }}>
+            {greeting}. {String(home.title)}
           </h1>
-          <p
-            className="text-white text-sm font-medium mt-2 max-w-md animate-fade-in-up stagger-1"
-            style={{
-              fontFamily: "'Outfit', 'Inter', sans-serif",
-              textShadow: '0 1px 3px rgba(0,0,0,0.25)',
-            }}
-          >
-            {String(home.tagline)}
+          <p className="text-white/95 text-sm font-medium mt-2 max-w-md leading-relaxed animate-fade-in-up stagger-1" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+            {subtitle}
           </p>
         </div>
-        {/* Wavy bottom - organic non-linear breakline */}
-        <div className="absolute -bottom-px left-0 right-0 w-full leading-[0]" style={{ color: 'var(--color-bg)' }}>
-          <svg
-            viewBox="0 0 1440 72"
-            preserveAspectRatio="none"
-            className="block w-full h-10"
-          >
-            <path
-              fill="currentColor"
-              d="M0,36 Q360,0 720,36 T1440,36 L1440,72 L0,72 Z"
-            />
+        <div className="absolute -bottom-px left-0 right-0 w-full leading-[0]" style={{ color: isNight ? '#1a1f2e' : 'var(--color-bg)' }}>
+          <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="block w-full h-12">
+            <path fill="currentColor" d="M0,50 C240,10 480,90 720,50 C960,10 1200,90 1440,50 L1440,100 L0,100 Z" />
           </svg>
         </div>
       </header>
 
       <div className="px-4 pt-2 space-y-4">
-        {/* SOS - subtle urgency */}
+        {/* Wellness Circle - or Empty State */}
+        {completed === 0 ? (
+          <div className="flex flex-col items-center py-10 px-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-[var(--color-border-subtle)] animate-fade-in">
+            <BridgeQuietSVG />
+            <p className="mt-6 text-center text-[var(--color-text)] font-medium leading-relaxed max-w-xs">
+              {String(home.emptyState)}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-white p-5 card-interactive animate-fade-in-up">
+            <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-4">{String(home.wellnessCircle)}</p>
+            <WellnessCircle
+              moodDone={moodDone}
+              symptomDone={symptomDone}
+              breathingDone={breathingDone}
+              progress={progress}
+              moodLabel={String(home.wellnessMood)}
+              symptomLabel={String(home.wellnessSymptoms)}
+              breathingLabel={String(home.wellnessBreathing)}
+            />
+          </div>
+        )}
+
+        {/* SOS - always visible */}
         <Link
           to="/sos"
-          className="block relative overflow-hidden rounded-xl border border-white/80 bg-white p-4 card-interactive animate-fade-in-up stagger-2"
+          className="block relative overflow-hidden rounded-xl border border-white/80 bg-white p-4 card-interactive animate-fade-in-up"
           style={{ boxShadow: 'var(--shadow-sm)' }}
         >
           <img src={images.warmSunset} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
@@ -122,88 +170,125 @@ export default function Home() {
           </div>
         </Link>
 
-        {/* Treatment countdown */}
-        <div
-          className="relative overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white p-4 card-interactive animate-fade-in-up stagger-3"
-          style={{ boxShadow: 'var(--shadow-sm)' }}
-        >
-          <img src={images.morningLight} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
-          <div className="absolute inset-0 bg-white/95" />
-          <div className="relative z-10">
-            {showDateInput ? (
-              <div>
-                <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-2">
-                  {String(home.setNextTreatment)}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={nextTreatment}
-                    onChange={(e) => setNextTreatment(e.target.value)}
-                    className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  />
-                  <button
-                    onClick={saveNextTreatment}
-                    className="rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors"
-                  >
-                    {String(t.save)}
-                  </button>
+        {/* Treatment - hidden in night collapsed */}
+        {!nightCollapsed && (
+          <div className="relative overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white p-4 card-interactive animate-fade-in-up" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <img src={images.morningLight} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+            <div className="absolute inset-0 bg-white/95" />
+            <div className="relative z-10">
+              {showDateInput ? (
+                <div>
+                  <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-2">{String(home.setNextTreatment)}</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={nextTreatment} onChange={(e) => setNextTreatment(e.target.value)} className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
+                    <button onClick={saveNextTreatment} className="rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors">{String(t.save)}</button>
+                  </div>
                 </div>
-              </div>
-            ) : days !== null ? (
-              <button onClick={() => setShowDateInput(true)} className="w-full text-left">
-                <p className="text-sm text-[var(--color-text-secondary)]">{String(home.nextTreatment)}</p>
-                <p className="text-lg font-semibold text-[var(--color-primary)] mt-0.5">{daysText}</p>
-              </button>
-            ) : (
-              <button onClick={() => setShowDateInput(true)} className="w-full text-left">
-                <p className="text-sm text-[var(--color-text-secondary)]">{String(home.setNextTreatment)}</p>
-                <p className="text-[var(--color-primary)] font-medium mt-0.5 text-sm">{String(home.clickToSet)}</p>
-              </button>
-            )}
+              ) : days !== null ? (
+                <button onClick={() => setShowDateInput(true)} className="w-full text-left">
+                  <p className="text-sm text-[var(--color-text-secondary)]">{String(home.nextTreatment)}</p>
+                  <p className="text-lg font-semibold text-[var(--color-primary)] mt-0.5">{daysText}</p>
+                </button>
+              ) : (
+                <button onClick={() => setShowDateInput(true)} className="w-full text-left">
+                  <p className="text-sm text-[var(--color-text-secondary)]">{String(home.setNextTreatment)}</p>
+                  <p className="text-[var(--color-primary)] font-medium mt-0.5 text-sm">{String(home.clickToSet)}</p>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Menu - clean cards */}
+        {/* Menu cards */}
         <nav className="space-y-3">
-          {menuIds.map((id, i) => (
-            <Link
-              key={id}
-              to={menuPaths[id]}
-              className="group block overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white card-interactive animate-fade-in-up"
-              style={{
-                animationDelay: `${0.15 + i * 0.04}s`,
-                animationFillMode: 'forwards',
-                opacity: 0,
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              <div className="relative flex items-center gap-4 p-4">
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                  <img
-                    src={menuImages[id] ?? images.natureGreen}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          {visibleMenuIds.map((id, i) => {
+            const isHighlight = isMorning && (id === 'mood' || id === 'symptoms')
+            return (
+              <Link
+                key={id}
+                to={menuPaths[id]}
+                className={`group block overflow-hidden rounded-xl border bg-white card-interactive animate-fade-in-up ${
+                  isHighlight ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/30' : 'border-[var(--color-border-subtle)]'
+                }`}
+                style={{
+                  animationDelay: `${0.1 + i * 0.03}s`,
+                  animationFillMode: 'forwards',
+                  opacity: 0,
+                  boxShadow: isHighlight ? '0 4px 14px rgba(13,148,136,0.2)' : 'var(--shadow-sm)',
+                }}
+              >
+                <div className="relative flex items-center gap-4 p-4">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+                    <img src={menuImages[id] ?? images.natureGreen} alt="" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-semibold text-[var(--color-text)] text-[15px]">{menu[id]?.title ?? ''}</h2>
+                    <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 truncate">{menu[id]?.subtitle ?? ''}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)]" strokeWidth={2} />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-[var(--color-text)] text-[15px]">{menu[id]?.title ?? ''}</h2>
-                  <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 truncate">{menu[id]?.subtitle ?? ''}</p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)]" strokeWidth={2} />
-              </div>
-            </Link>
-          ))}
+              </Link>
+            )
+          })}
         </nav>
 
-        <p className="pt-6 text-center text-xs text-[var(--color-text-muted)]">
-          {String(home.footer)}
-        </p>
-        <p className="text-center text-[10px] text-[var(--color-text-muted)]">
-          Photos by <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-primary)]">Pexels</a>
-        </p>
+        {/* Show more / less - night mode */}
+        {isNight && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full py-3 text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
+          >
+            {expanded ? String(home.showLess) : String(home.showMore)}
+          </button>
+        )}
+
+        <p className="pt-6 text-center text-xs text-[var(--color-text-muted)]">{String(home.footer)}</p>
       </div>
     </div>
+  )
+}
+
+function WellnessCircle({ moodDone, symptomDone, breathingDone, progress, moodLabel, symptomLabel, breathingLabel }: { moodDone: boolean; symptomDone: boolean; breathingDone: boolean; progress: number; moodLabel: string; symptomLabel: string; breathingLabel: string }) {
+  const r = 40
+  const circ = 2 * Math.PI * r
+  const seg = circ / 3
+  const moodLen = moodDone ? seg : 0
+  const symptomLen = symptomDone ? seg : 0
+  const breathingLen = breathingDone ? seg : 0
+
+  return (
+    <div className="flex items-center justify-center gap-6">
+      <svg width={120} height={120} className="-rotate-90">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-border-subtle)" strokeWidth="8" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-primary)" strokeWidth="8" strokeDasharray={`${moodLen} ${circ - moodLen}`} strokeDashoffset={0} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-primary)" strokeWidth="8" strokeDasharray={`${symptomLen} ${circ - symptomLen}`} strokeDashoffset={-moodLen} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-primary)" strokeWidth="8" strokeDasharray={`${breathingLen} ${circ - breathingLen}`} strokeDashoffset={-(moodLen + symptomLen)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+      </svg>
+      <div className="text-sm text-[var(--color-text-secondary)]">
+        <p className="font-medium text-[var(--color-text)]">{Math.round(progress * 100)}%</p>
+        <p>{moodDone ? '✓' : '○'} {moodLabel}</p>
+        <p>{symptomDone ? '✓' : '○'} {symptomLabel}</p>
+        <p>{breathingDone ? '✓' : '○'} {breathingLabel}</p>
+      </div>
+    </div>
+  )
+}
+
+function BridgeQuietSVG() {
+  return (
+    <svg width="160" height="100" viewBox="0 0 160 100" fill="none" className="text-[var(--color-primary)]/40">
+      <path
+        d="M20 80 Q80 50 140 80"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.6"
+      />
+      <circle cx="40" cy="70" r="6" fill="currentColor" opacity="0.5" className="animate-soft-pulse" />
+      <circle cx="80" cy="60" r="5" fill="currentColor" opacity="0.4" className="animate-soft-pulse" style={{ animationDelay: '0.5s' }} />
+      <circle cx="120" cy="70" r="6" fill="currentColor" opacity="0.5" className="animate-soft-pulse" style={{ animationDelay: '1s' }} />
+    </svg>
   )
 }

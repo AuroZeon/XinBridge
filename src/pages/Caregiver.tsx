@@ -1,22 +1,27 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { CheckCircle2 } from '../components/icons'
 import { images } from '../data/mediaAssets'
+import ContactFamilyModal from '../components/ContactFamilyModal'
 
 const PRESET_IDS = ['anxious', 'support', 'lonely', 'tired'] as const
 
 export default function Caregiver() {
+  const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
   const t = useTranslation()
   const locale = useLocale()
   const [tab, setTab] = useState<'notify' | 'notes'>('notify')
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null)
   const [customMessage, setCustomMessage] = useState('')
   const [sent, setSent] = useState(false)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
   const [familyNote, setFamilyNote] = useState('')
   const [savedNotes, setSavedNotes] = useState<string[]>(() => getItem<string[]>('familyNotes', []))
+  const [familyPhone, setFamilyPhone] = useState(() => getItem<string>('familyPhone', ''))
+  const [sendError, setSendError] = useState('')
+  const [contactMessage, setContactMessage] = useState('')
 
   const cg = t.caregiver as Record<string, string>
   const presetMsgs = t.presetMessages as Record<string, string>
@@ -25,15 +30,26 @@ export default function Caregiver() {
     setItem('familyNotes', savedNotes)
   }, [savedNotes])
 
+  useEffect(() => {
+    setItem('familyPhone', familyPhone)
+  }, [familyPhone])
+
   const handleSend = () => {
     const message = customMessage.trim() || (selectedMessage ? presetMsgs[selectedMessage] : '')
     if (!message) {
-      alert(locale === 'zh' ? '请选择或输入一条消息' : 'Please select or enter a message')
+      setSendError(String(cg.pleaseSelectMessage))
       return
     }
-    alert(locale === 'zh' ? `家人将收到通知：\n\n"${message}"\n\n（MVP 演示模式）` : `Family will receive:\n\n"${message}"\n\n(MVP demo)`)
-    setSent(true)
+    setSendError('')
+    setContactMessage(message)
+    setContactModalOpen(true)
   }
+
+  const handleSendNote = (note: string) => {
+    setContactMessage(note)
+    setContactModalOpen(true)
+  }
+
 
   const handleSaveNote = () => {
     const trimmed = familyNote.trim()
@@ -57,15 +73,15 @@ export default function Caregiver() {
   }
 
   return (
-    <div className="min-h-dvh pt-safe pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
+    <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
         <img src={images.family} alt="" className="w-full h-full object-cover opacity-[0.1]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
-      <header className="flex items-center justify-between gap-4 py-4">
-        <Link to="/" className="text-[var(--color-primary)] text-sm">{String(t.back)}</Link>
-        <h1 className="text-xl font-semibold">{String(cg.title)}</h1>
-        <LanguageSwitcher />
+      <header className="header-safe flex items-center justify-between gap-4 pb-4 px-1">
+        <Link to={backTo} className="text-[var(--color-primary)] text-sm">{String(t.back)}</Link>
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">{String(cg.title)}</h1>
+        <span className="w-10" aria-hidden />
       </header>
 
       <div className="flex gap-2 mb-6">
@@ -85,6 +101,17 @@ export default function Caregiver() {
 
       {tab === 'notify' ? (
         <>
+          <div className="mb-6 p-4 rounded-xl bg-[var(--color-primary-subtle)]/50 border border-[var(--color-primary)]/20">
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">{String(cg.familyPhone)}</label>
+            <input
+              type="tel"
+              value={familyPhone}
+              onChange={(e) => setFamilyPhone(e.target.value)}
+              placeholder={cg.familyPhonePlaceholder}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--color-border)] bg-white text-[var(--color-text)] placeholder:text-gray-400"
+            />
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1.5">{String(cg.familyPhoneHint)}</p>
+          </div>
           <p className="text-[var(--color-text-secondary)] mb-6">{String(cg.notifySubtitle)}</p>
           <p className="text-sm font-semibold text-[var(--color-text-secondary)] mb-3">{String(cg.quickSelect)}</p>
           <div className="space-y-2 mb-6">
@@ -108,6 +135,9 @@ export default function Caregiver() {
             }}
             className="w-full min-h-[80px] p-4 rounded-xl bg-[var(--color-card)] text-[var(--color-text)] placeholder:text-gray-400 resize-none mb-6"
           />
+          {sendError && (
+            <p className="text-sm text-red-500 mb-3">{sendError}</p>
+          )}
           <button onClick={handleSend} className="w-full bg-[var(--color-primary)] text-white py-4 rounded-xl font-semibold text-lg">
             {String(cg.sendToFamily)}
           </button>
@@ -137,7 +167,7 @@ export default function Caregiver() {
                   <div key={i} className="p-4 rounded-xl bg-[var(--color-card)] border border-gray-100">
                     <p className="text-[var(--color-text)]">{note}</p>
                     <button
-                      onClick={() => alert(locale === 'zh' ? `将发送：\n\n"${note}"` : `Will send:\n\n"${note}"`)}
+                      onClick={() => handleSendNote(note)}
                       className="text-sm text-[var(--color-primary)] mt-2"
                     >
                       {String(cg.sendToFamilyBtn)}
@@ -149,6 +179,13 @@ export default function Caregiver() {
           )}
         </>
       )}
+      <ContactFamilyModal
+        open={contactModalOpen}
+        onClose={() => { setContactModalOpen(false); setContactMessage(''); }}
+        message={contactMessage}
+        familyPhoneOverride={familyPhone}
+        onContactChosen={() => setSent(true)}
+      />
     </div>
   )
 }

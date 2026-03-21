@@ -11,18 +11,28 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run cap:sync && npx cap open ios",
     "cap:android": "npm run cap:sync && npx cap open android",
-    "cap:init": "npm run build && npx cap add ios && npx cap add android"
+    "cap:init": "npm run build && npx cap add ios && npx cap add android",
+    "cap:icons": "capacitor-assets generate --pwa --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#0c4a3e' && mkdir -p public/icons && cp icons/*.webp public/icons/",
+    "cap:icons:native": "capacitor-assets generate --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#0c4a3e'"
   },
   "dependencies": {
     "@capacitor/core": "^7.0.0",
+    "@capacitor/haptics": "^5.0.8",
+    "@capacitor/motion": "^5.0.8",
+    "@huggingface/transformers": "^3.8.1",
     "@mlc-ai/web-llm": "^0.2.82",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.38.0",
+    "howler": "^2.2.4",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.0.0"
+    "react-router-dom": "^7.0.0",
+    "swiper": "^12.1.2"
   },
   "devDependencies": {
     "@capacitor/android": "^7.0.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.0.0",
     "@capacitor/ios": "^7.0.0",
     "@tailwindcss/postcss": "^4.2.1",

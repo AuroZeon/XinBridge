@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
+import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import { setItem } from '../utils/storage'
 import { useTranslation } from '../i18n/context'
 import { images } from '../data/mediaAssets'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 type Phase = 'inhale' | 'hold' | 'exhale'
 
 const PHASE_DURATIONS = { inhale: 4000, hold: 2000, exhale: 4000 }
+
+function triggerHaptic(style: ImpactStyle) {
+  if (!Capacitor.isNativePlatform()) return
+  Haptics.impact({ style }).catch(() => {})
+}
 const CYCLE_MS = 10000
 
 interface BreathingProps {
@@ -14,6 +21,7 @@ interface BreathingProps {
 }
 
 export default function Breathing({ mode = 'normal' }: BreathingProps) {
+  const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
   const t = useTranslation()
   const br = t.breathing as Record<string, string | ((n: number) => string)>
   const isCoolDown = mode === 'coolDown'
@@ -26,6 +34,7 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
   const [cycleProgress, setCycleProgress] = useState(0)
   const cycleStartRef = useRef<number>(0)
   const rafRef = useRef<number>(0)
+  const prevPhaseRef = useRef<Phase | null>(null)
 
   const PREP_SECONDS = 5
 
@@ -57,15 +66,25 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
         const progress = Math.min(elapsed / CYCLE_MS, 1)
         setCycleProgress(progress * 100)
 
-        if (elapsed < PHASE_DURATIONS.inhale) {
-          setPhase('inhale')
-        } else if (elapsed < PHASE_DURATIONS.inhale + PHASE_DURATIONS.hold) {
-          setPhase('hold')
-        } else if (elapsed < CYCLE_MS) {
-          setPhase('exhale')
-        } else {
-          setCount((c) => c + 1)
+        if (elapsed >= CYCLE_MS) {
+          setCount((c) => {
+            const next = c + 1
+            if (next >= 1) setItem('breathingDoneDate', new Date().toISOString().slice(0, 10))
+            return next
+          })
           cycleStartRef.current = now
+          prevPhaseRef.current = null
+        } else {
+          let nextPhase: Phase
+          if (elapsed < PHASE_DURATIONS.inhale) nextPhase = 'inhale'
+          else if (elapsed < PHASE_DURATIONS.inhale + PHASE_DURATIONS.hold) nextPhase = 'hold'
+          else nextPhase = 'exhale'
+          if (prevPhaseRef.current !== nextPhase) {
+            if (nextPhase === 'inhale') triggerHaptic(ImpactStyle.Light)
+            else if (nextPhase === 'exhale') triggerHaptic(ImpactStyle.Medium)
+            prevPhaseRef.current = nextPhase
+          }
+          setPhase(nextPhase)
         }
         rafRef.current = requestAnimationFrame(animate)
       }
@@ -85,8 +104,8 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
   return (
     <div className="min-h-dvh pt-safe pb-safe relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
-        <img src={images.softClouds} alt="" className="w-full h-full object-cover opacity-25" />
-        <div className="absolute inset-0 bg-[var(--color-bg)]/90" />
+        <img src={images.softClouds} alt="" className="w-full h-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-bg)]/95 via-[var(--color-bg)]/92 to-[var(--color-primary-subtle)]/20" />
       </div>
 
       {isCoolDown && (
@@ -97,47 +116,52 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
       )}
 
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-6">
-        {!isActive ? (
+        {!isActive && !preparing ? (
           <div className="flex flex-col items-center max-w-md animate-fade-in">
-            <div className="w-32 h-32 rounded-full bg-[var(--color-primary-subtle)] flex items-center justify-center mb-6 animate-gentle-float">
-              <div className="w-20 h-20 rounded-full bg-[var(--color-primary)]/30 animate-soft-pulse" />
+            <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[var(--color-primary-subtle)] to-[var(--color-primary-muted)]/30 flex items-center justify-center mb-8 animate-gentle-float shadow-[0_8px_32px_rgba(13,148,136,0.12)]">
+              <div className="w-24 h-24 rounded-full bg-[var(--color-primary)]/25 animate-soft-pulse" />
             </div>
-            <h1 className="text-xl font-semibold text-[var(--color-text)] mb-2 text-center">
+            <h1 className="text-2xl font-semibold text-[var(--color-text)] mb-1.5 text-center tracking-tight">
               {String(br.title)}
             </h1>
-            <p className="text-center text-[var(--color-text-secondary)] text-sm leading-6 mb-2">
+            {br.subtitle && (
+              <p className="text-center text-[var(--color-text-secondary)]/90 text-sm leading-relaxed mb-5 max-w-xs">
+                {String(br.subtitle)}
+              </p>
+            )}
+            <p className="text-center text-[var(--color-text-secondary)] text-[15px] leading-6 mb-4">
               {isCoolDown ? String(br.coolDownInstruction) : String(br.instruction)}
             </p>
-            <p className="text-sm text-[var(--color-primary)] font-medium mb-6 text-center">
+            <p className="text-sm text-[var(--color-primary)]/90 font-medium mb-8 text-center">
               {String(br.followHint)}
             </p>
             <button
               onClick={() => setPreparing(true)}
-              className="bg-[var(--color-primary)] text-white py-3.5 px-10 rounded-xl font-medium hover:bg-[var(--color-primary-hover)] transition-colors"
+              className="bg-[var(--color-primary)] text-white py-4 px-12 rounded-2xl font-medium text-[15px] shadow-[0_4px_14px_rgba(13,148,136,0.35)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_6px_20px_rgba(13,148,136,0.4)] active:scale-[0.98] transition-all duration-200"
             >
               {String(br.start)}
             </button>
           </div>
         ) : preparing ? (
           <div className="flex flex-col items-center animate-fade-in">
-            <p className="text-xl font-semibold text-[var(--color-text-secondary)] mb-4">
+            <p className="text-xl font-medium text-[var(--color-text)] mb-6 text-center">
               {String(br.getReady)}
             </p>
-            <div className="w-32 h-32 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center mb-6">
+            <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[var(--color-primary-subtle)] to-[var(--color-primary-muted)]/40 flex items-center justify-center mb-6 shadow-[0_8px_32px_rgba(13,148,136,0.15)]">
               <span
                 key={countdown}
-                className="text-6xl font-bold text-[var(--color-primary)] tabular-nums"
+                className="text-7xl font-bold text-[var(--color-primary)] tabular-nums"
                 style={{ animation: 'countdown-pop 0.5s ease-out' }}
               >
                 {countdown}
               </span>
             </div>
-            <p className="text-sm text-[var(--color-text-secondary)]">
+            <p className="text-[15px] text-[var(--color-text-secondary)] text-center max-w-xs">
               {typeof br.beginIn === 'function' ? br.beginIn(countdown) : `${countdown}...`}
             </p>
             <button
               onClick={() => { setPreparing(false); setCountdown(0); }}
-              className="mt-8 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition"
+              className="mt-10 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
             >
               {String(br.cancel)}
             </button>
@@ -154,7 +178,7 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="3"
-                  className="text-[var(--color-primary)]/15"
+                  className="text-[var(--color-primary)]/12"
                 />
                 <circle
                   cx="50"
@@ -173,7 +197,7 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
               {/* Breathing circle - grows/shrinks with your breath */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div
-                  className="w-32 h-32 rounded-full bg-gradient-to-br from-[var(--color-primary)]/80 to-[var(--color-primary-light)]/90 flex items-center justify-center shadow-[0_0_50px_rgba(13,148,136,0.35)]"
+                  className="w-32 h-32 rounded-full bg-gradient-to-br from-[var(--color-primary)]/80 to-[var(--color-primary-light)]/95 flex items-center justify-center shadow-[0_0_60px_rgba(13,148,136,0.4)]"
                   style={{
                     transform: phase === 'inhale' ? 'scale(1.3)' : phase === 'hold' ? 'scale(1.3)' : 'scale(0.65)',
                     transition: phase === 'inhale'
@@ -183,22 +207,22 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
                         : 'transform 4s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                 >
-                  <div className="w-16 h-16 rounded-full bg-white/40" />
+                  <div className="w-16 h-16 rounded-full bg-white/50" />
                 </div>
               </div>
             </div>
 
             {/* Phase label - large and clear */}
-            <p className="text-2xl font-bold text-[var(--color-primary)] mb-1 min-h-[2.5rem] flex items-center justify-center">
+            <p className="text-2xl font-semibold text-[var(--color-primary)] mb-1 min-h-[2.5rem] flex items-center justify-center">
               {phaseLabels[phase]}
             </p>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+            <p className="text-[15px] text-[var(--color-text-secondary)] mb-8">
               {typeof br.completedCount === 'function' ? br.completedCount(count) : `${count}`}
             </p>
 
             <button
               onClick={() => setIsActive(false)}
-              className="px-8 py-3 rounded-xl text-[var(--color-text-secondary)] hover:bg-black/5 transition"
+              className="px-10 py-3.5 rounded-2xl text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-subtle)]/50 hover:text-[var(--color-primary)] transition-colors"
             >
               {String(br.pause)}
             </button>
@@ -206,9 +230,8 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
         )}
       </div>
 
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-        <Link to="/" className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
-        <LanguageSwitcher />
+      <div className="absolute top-safe left-4 right-4 flex justify-between items-center">
+        <Link to={backTo} className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
       </div>
     </div>
   )
