@@ -15,7 +15,7 @@ async function ensureModel() {
   return generator
 }
 
-self.onmessage = async (e: MessageEvent<{ type: string; payload?: { userInput: string; locale: 'zh' | 'en'; systemPrompt?: string } }>) => {
+self.onmessage = async (e: MessageEvent<{ type: string; payload?: { userInput: string; locale: 'zh' | 'en'; systemPrompt?: string; chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }> } }>) => {
   const { type, payload } = e.data
   try {
     if (type === 'init') {
@@ -25,13 +25,14 @@ self.onmessage = async (e: MessageEvent<{ type: string; payload?: { userInput: s
       return
     }
     if (type === 'chat' && payload) {
-      const { userInput, locale, systemPrompt } = payload
+      const { userInput, locale, systemPrompt, chatHistory } = payload
       const gen = await ensureModel()
       if (!gen) throw new Error('Model not loaded')
       const sys = systemPrompt ?? (locale === 'zh' ? EMPATHY_SYSTEM_ZH : EMPATHY_SYSTEM_EN)
+      const history = chatHistory?.length ? chatHistory : [{ role: 'user' as const, content: userInput.trim() }]
       const chatMessages = [
         { role: 'system' as const, content: sys },
-        { role: 'user' as const, content: userInput.trim() },
+        ...history,
       ]
       const out = await gen(chatMessages, { max_new_tokens: 400, return_full_text: false })
       const raw = out?.[0]?.generated_text

@@ -37,9 +37,59 @@ const patterns: Record<string, { zh: string; en: string }> = {
     zh: '我在这里。深呼吸。\n\n请立即：\n• 打开「快速 SOS」开始呼吸或联系家人\n• 打开「家人联系」让家人知道你需要陪伴\n\n你并不孤单。',
     en: "I'm here. Take a breath.\n\nRight now:\n• Open Quick SOS to breathe or contact family\n• Open Family Contact to let family know you need support\n\nYou're not alone.",
   },
+  /** Professional therapeutic response for distress/crisis—validating, warm, supportive. Not punitive. */
+  crisisSupport: {
+    zh: `谢谢你愿意说出来。能把这些感受讲出来，本身就是一种勇气。
+
+很多人在治疗中都会经历非常难熬的时刻，会有「撑不下去」的念头。这种感受是可以被理解的，不代表你做错了什么。
+
+此时此刻，如果可以，试着做一次深呼吸。你并不孤单。
+
+如果你愿意，可以：
+• 打开「快速 SOS」——用 5-4-3-2-1 练习稳住当下
+• 打开「家人联系」——让在乎你的人知道你需要陪伴
+• 或继续在这里说——我会一直听着
+
+你值得被支持。我们在这里陪着你。`,
+    en: `Thank you for sharing that. It takes courage to put these feelings into words.
+
+Many people going through treatment have moments when everything feels too heavy—when "I can't keep going" crosses the mind. That feeling is understandable. It doesn't mean you've done anything wrong.
+
+Right now, if you can, try one slow breath. You're not alone.
+
+If you'd like:
+• Open Quick SOS — use the 5-4-3-2-1 exercise to steady yourself
+• Open Family Contact — let someone who cares know you need them
+• Or keep talking here — I'm listening
+
+You deserve support. We're here with you.`,
+  },
+  /** Formal policy template—only for clearly out-of-scope content (e.g. sexual/explicit). */
   unsafe: {
-    zh: '我在这里陪着你。如果你需要立刻的支持，请点击下方的「快速 SOS」或「家人联系」。你并不孤单。',
-    en: "I'm here with you. If you need immediate support, tap Quick SOS or Family Contact below. You're not alone.",
+    zh: `感谢你的信任。心桥专门为癌症患者提供情绪陪伴，我们在这里倾听、支持、陪伴。
+
+根据我们的使用范围，心桥无法回应此类话题，但我们非常重视你的感受。你正在经历的每一点情绪都是真实的，值得被认真对待。
+
+如果你此刻需要支持，请优先使用：
+• 「快速 SOS」— 5-4-3-2-1  grounding 练习，帮助你稳住当下
+• 「家人联系」— 让家人知道你需要的陪伴
+• 「呼吸练习」— 缓慢呼吸有助于平复心绪
+
+心桥的使命是不让任何癌症患者在夜晚感到孤单。我们鼓励你继续在这里倾诉治疗中的疲惫、担忧、孤独或任何情绪，我们都会认真倾听并陪伴你。
+
+如需了解更多关于心桥支持范围与社区准则，请参阅应用内说明。你并不孤单。`,
+    en: `Thank you for reaching out. XinBridge is designed specifically to provide emotional companionship for cancer patients—we're here to listen, support, and be present with you.
+
+Within our support scope, XinBridge cannot engage with this type of topic, but we care deeply about how you're feeling. Whatever you're experiencing is valid and worthy of attention.
+
+If you need support right now, please use:
+• Quick SOS — 5-4-3-2-1 grounding to help you steady in the moment
+• Family Contact — let your loved ones know you need them
+• Breathing Exercise — slow breaths can help bring calm
+
+XinBridge's mission is that no cancer patient should feel alone at night. We encourage you to keep sharing—your fatigue, worry, loneliness, or any emotion during treatment. We're here to listen and accompany you.
+
+For more about our support scope and community guidelines, see the in-app information. You're not alone.`,
   },
   default: {
     zh: '我听到了。你的感受都是真实的，无论是什么。\n\n建议：如果想放松一下，可以试试「呼吸练习」或「夜晚陪伴」。如果需要家人知道，可以用「家人联系」。也可以继续在这里说，我都在听。',

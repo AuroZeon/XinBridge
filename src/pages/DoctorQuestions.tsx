@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation } from '../i18n/context'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 
 export default function DoctorQuestions() {
   const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
@@ -31,7 +32,7 @@ export default function DoctorQuestions() {
   return (
     <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
-        <img src={images.sunshine} alt="" className="w-full h-full object-cover opacity-[0.12]" />
+        <ImgWithFallback src={images.sunshine} alt="" className="w-full h-full object-cover opacity-[0.12]" fallbackClassName="w-full h-full object-cover opacity-[0.12]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
       <header className="header-safe flex items-center justify-between gap-4 pb-4 px-1">

@@ -195,7 +195,7 @@ export default function SleepSupport() {
               </div>
             )}
 
-            {/* Music panel - Ambient Piano & Celestial Pads */}
+            {/* Music panel - Ambient Piano & Celestial Pads - plays in-app via Howler */}
             {activeCard === 'music' && (
               <div className="bg-amber-500/10 rounded-2xl p-5 border border-amber-500/20 space-y-3">
                 <h3 className="font-semibold text-white">{locale === 'zh' ? '环境音乐' : 'Ambient music'}</h3>
@@ -206,7 +206,14 @@ export default function SleepSupport() {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      window.open(track.url, '_blank', 'noopener,noreferrer')
+                      audioPlayer.handleAdd({
+                        id: track.id,
+                        category: 'ambiance',
+                        titleEn: track.title,
+                        titleZh: track.titleZh,
+                        url: track.url,
+                        durationSec: 0,
+                      })
                     }}
                     className="block w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/90 text-sm"
                   >

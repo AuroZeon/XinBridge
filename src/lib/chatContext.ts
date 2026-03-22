@@ -1,53 +1,93 @@
 /**
- * Minimal context for XinBridge AI - raw symptom/mood data only.
- * Kept very short so the model focuses on answering the user's question.
+ * Builds chat history from dialog messages with summarization when context is too large.
+ * Ensures the model focuses on the latest user question.
  */
-import { getItem } from '../utils/storage'
+import type { ChatMessage } from '../types'
 
-interface SymptomLog {
-  date: string
-  fatigue?: number
-  nausea?: number
-  pain?: number
-  sleep?: number
-  appetite?: number
-  bodySymptoms?: Record<string, number>
+const MAX_CONTEXT_CHARS = 900
+const MAX_RECENT_CHARS = 600
+const BULLET_MAX_LEN = 60
+
+export interface ChatHistoryResult {
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  contextAppendix: string
 }
 
-export function buildChatContext(locale: 'zh' | 'en'): string {
-  const logs = getItem<SymptomLog[]>('symptoms', [])
-  const today = new Date().toISOString().slice(0, 10)
-  const todayLog = logs.find((l) => l.date === today)
+/**
+ * Summarize older turns to bullet points to fit within context budget.
+ */
+function summarizeToBullets(
+  turns: Array<{ role: 'user' | 'assistant'; content: string }>,
+  locale: 'zh' | 'en'
+): string {
+  const labelUser = locale === 'zh' ? '用户' : 'User'
+  const labelAi = locale === 'zh' ? '心桥' : 'XinBridge'
+  const bullets = turns.map((t) => {
+    const label = t.role === 'user' ? labelUser : labelAi
+    const short = t.content.length > BULLET_MAX_LEN
+      ? t.content.slice(0, BULLET_MAX_LEN) + (locale === 'zh' ? '…' : '…')
+      : t.content
+    return `• ${label}: ${short.trim()}`
+  })
+  const prefix = locale === 'zh' ? '【此前对话摘要】\n' : '[Earlier dialog summary]\n'
+  return prefix + bullets.join('\n')
+}
 
-  const lastMood = getItem<string>('lastMood', '')
-  const lastMoodDate = getItem<string>('lastMoodDate', '')
-
-  const parts: string[] = []
-
-  if (todayLog) {
-    const symptoms: string[] = []
-    if ((todayLog.pain ?? 0) > 0)
-      symptoms.push(locale === 'zh' ? `疼痛${todayLog.pain}` : `pain${todayLog.pain}`)
-    if ((todayLog.fatigue ?? 0) > 0)
-      symptoms.push(locale === 'zh' ? `疲劳${todayLog.fatigue}` : `fatigue${todayLog.fatigue}`)
-    if ((todayLog.nausea ?? 0) > 0)
-      symptoms.push(locale === 'zh' ? `恶心${todayLog.nausea}` : `nausea${todayLog.nausea}`)
-    if (symptoms.length > 0) parts.push(symptoms.join(','))
+/**
+ * Build chat history from messages. When total context exceeds limit, older turns
+ * are condensed to bullet points. The latest user message is always included in full.
+ */
+export function buildChatHistory(
+  messages: ChatMessage[],
+  currentUserContent: string,
+  locale: 'zh' | 'en' = 'zh'
+): ChatHistoryResult {
+  const excludeInitial = messages.filter((m) => m.id !== '0')
+  const turns: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  for (const m of excludeInitial) {
+    const role = m.isUser ? ('user' as const) : ('assistant' as const)
+    const content = m.text?.trim() || ''
+    if (!content) continue
+    turns.push({ role, content })
   }
+  turns.push({ role: 'user', content: currentUserContent })
 
-  if (lastMood && lastMoodDate === today) {
-    const labels: Record<string, string> = {
-      calm: 'calm',
-      worried: 'worried',
-      sad: 'sad',
-      angry: 'angry',
-      exhausted: 'exhausted',
+  let totalLen = turns.reduce((s, t) => s + t.content.length, 0)
+
+  const focusInstruction =
+    turns.length > 1
+      ? (locale === 'zh'
+        ? '\n\n你的回答必须直接针对用户最后一条消息。'
+        : "\n\nYour answer must directly address the user's latest message.")
+      : ''
+
+  if (totalLen <= MAX_CONTEXT_CHARS) {
+    return {
+      messages: turns,
+      contextAppendix: focusInstruction,
     }
-    parts.push(labels[lastMood] ?? lastMood)
   }
 
-  if (parts.length === 0) return ''
-  // One short line only—don't outweigh the user's question
-  const prefix = locale === 'zh' ? '今日' : 'Today'
-  return `\n[${prefix}: ${parts.join('; ')}]`
+  const recent: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  const older: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  let recentLen = 0
+  const recentTarget = Math.min(MAX_RECENT_CHARS, totalLen - 200)
+
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const t = turns[i]!
+    if (recentLen + t.content.length <= recentTarget || older.length === 0) {
+      recent.unshift(t)
+      recentLen += t.content.length
+    } else {
+      older.unshift(t)
+    }
+  }
+
+  const summary = older.length > 0 ? summarizeToBullets(older, locale) : ''
+  const appendix = focusInstruction + (summary ? `\n\n${summary}` : '')
+
+  return {
+    messages: recent,
+    contextAppendix: appendix,
+  }
 }

@@ -4,14 +4,15 @@ import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
 import { HeartHandshake, ChevronRight } from '../components/icons'
 import { images, logo, menuImages } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 import { getWisdomPills } from '../data/wisdomPills'
 import { getContextualGreeting } from '../data/contextualGreeting'
 import { useWellnessProgress } from '../hooks/useWellnessProgress'
 
-const menuIds = ['mood', 'chat', 'symptoms', 'doctor', 'breathing', 'sleep', 'caregiver', 'hope'] as const
+const menuIds = ['mood', 'chat', 'symptoms', 'doctor', 'breathing', 'sleep', 'caregiver', 'hope', 'games'] as const
 const menuPaths: Record<string, string> = {
   mood: '/mood', chat: '/chat', symptoms: '/symptoms', doctor: '/doctor',
-  breathing: '/breathing', sleep: '/sleep', caregiver: '/caregiver', hope: '/hope',
+  breathing: '/breathing', sleep: '/sleep', caregiver: '/caregiver', hope: '/hope', games: '/games',
 }
 
 function getHour(): number {
@@ -98,7 +99,7 @@ export default function Home() {
 
       {/* Hero */}
       <header className="relative -mx-4 mb-0 overflow-hidden">
-        <img src={images.heroSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <ImgWithFallback src={images.heroSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div
           className="absolute inset-0 min-h-[200px]"
           style={{
@@ -156,7 +157,7 @@ export default function Home() {
           className="block relative overflow-hidden rounded-xl border border-white/80 bg-white p-4 card-interactive animate-fade-in-up"
           style={{ boxShadow: 'var(--shadow-sm)' }}
         >
-          <img src={images.warmSunset} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+          <ImgWithFallback src={images.warmSunset} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/90 to-transparent" />
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/90 shadow-sm">
@@ -173,7 +174,7 @@ export default function Home() {
         {/* Treatment - hidden in night collapsed */}
         {!nightCollapsed && (
           <div className="relative overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-white p-4 card-interactive animate-fade-in-up" style={{ boxShadow: 'var(--shadow-sm)' }}>
-            <img src={images.morningLight} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+            <ImgWithFallback src={images.morningLight} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
             <div className="absolute inset-0 bg-white/95" />
             <div className="relative z-10">
               {showDateInput ? (
@@ -219,7 +220,7 @@ export default function Home() {
               >
                 <div className="relative flex items-center gap-4 p-4">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                    <img src={menuImages[id] ?? images.natureGreen} alt="" className="h-full w-full object-cover" />
+                    <ImgWithFallback src={menuImages[id] ?? images.natureGreen} alt="" className="h-full w-full object-cover" fallbackClassName="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </div>
                   <div className="min-w-0 flex-1">

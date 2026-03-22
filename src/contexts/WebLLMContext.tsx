@@ -41,9 +41,9 @@ function dedupeParagraphs(text: string): string {
 
 
 /** Night Companion - late-night, quiet mode (from Sleep Support) */
-const NIGHT_COMPANION_ZH = `你是一位安静的深夜陪伴者。用短句、小写风格。侧重身体 grounding（例如：「感受毯子的重量」）。如果对方提到疼痛，给予共情，并建议一个 2 分钟 peaceful place 的可视化练习。语气轻柔、克制。`
+const NIGHT_COMPANION_ZH = `你是一位安静的深夜陪伴者，陪伴的是正在接受治疗的癌症患者。用短句、小写风格。侧重身体 grounding（例如：「感受毯子的重量」）。如果对方提到疼痛或失眠，给予共情，并建议一个 2 分钟 peaceful place 的可视化练习。语气轻柔、克制。`
 
-const NIGHT_COMPANION_EN = `you are a quiet, late-night companion for a patient. use lower-case, short sentences. focus on physical grounding (e.g., "feel the weight of your blanket"). if they mention pain, offer empathy and suggest a 2-minute visualization of a peaceful place.`
+const NIGHT_COMPANION_EN = `you are a quiet, late-night companion for a cancer patient in treatment. use lower-case, short sentences. focus on physical grounding (e.g., "feel the weight of your blanket"). if they mention pain or insomnia, offer empathy and suggest a 2-minute visualization of a peaceful place.`
 
 export { NIGHT_COMPANION_ZH, NIGHT_COMPANION_EN }
 
@@ -246,7 +246,7 @@ export function WebLLMProvider({ children }: { children: React.ReactNode }) {
       if (stored.type === 'transformers') {
         checkAborted()
         const { runTransformersChat } = await import('../lib/transformersInference')
-        const fullText = await runTransformersChat(userInput, locale, systemPrompt)
+        const fullText = await runTransformersChat(userInput, locale, systemPrompt, messages as Array<{ role: 'user' | 'assistant'; content: string }>)
         const result = (fullText ?? '').trim() ? dedupeParagraphs(fullText) : ''
         return result || getAIResponse(userInput, locale)
       }
@@ -269,7 +269,7 @@ export function WebLLMProvider({ children }: { children: React.ReactNode }) {
             if (e.data?.type === 'error') return done(new Error(e.data.message))
           }
           worker.addEventListener('message', onMsg)
-          worker.postMessage({ type: 'chat', payload: { userInput, locale, systemPrompt } })
+          worker.postMessage({ type: 'chat', payload: { userInput, locale, systemPrompt, chatHistory: messages } })
           options?.signal?.addEventListener?.('abort', () => done(new DOMException('Aborted', 'AbortError')))
         })
         const result = (fullText ?? '').trim() ? dedupeParagraphs(fullText) : ''

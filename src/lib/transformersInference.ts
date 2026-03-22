@@ -19,14 +19,18 @@ export async function initTransformersModel(): Promise<void> {
 export async function runTransformersChat(
   userInput: string,
   locale: 'zh' | 'en',
-  systemPromptOverride?: string
+  systemPromptOverride?: string,
+  chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<string> {
   if (!generator) await initTransformersModel()
   if (!generator) throw new Error('Model not loaded')
   const sys = systemPromptOverride ?? (locale === 'zh' ? EMPATHY_SYSTEM_ZH : EMPATHY_SYSTEM_EN)
+  const history = chatHistory?.length
+    ? chatHistory
+    : [{ role: 'user' as const, content: userInput.trim() }]
   const chatMessages = [
     { role: 'system' as const, content: sys },
-    { role: 'user' as const, content: userInput.trim() },
+    ...history,
   ]
   const out = await generator(chatMessages, { max_new_tokens: 400, return_full_text: false })
   const raw = out?.[0]?.generated_text

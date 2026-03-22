@@ -1,31 +1,144 @@
 /**
- * Vercel Serverless Function: Fetch new hope stories from web search.
- * Requires SERPER_API_KEY in Vercel env. Deploy with: vercel
+ * Global Pulse API – Multi-region cancer hope story search
+ * Searches US, Canada, and China for survivor/recovery stories.
+ * Requires SERPER_API_KEY. Without it, returns curated demo stories.
  *
- * Query params: cancer (e.g. breast), locale (zh|en)
- * Returns: { stories: HopeStory[] }
+ * Query params: cancer, locale (zh|en)
+ * Returns: { stories: HopeStory[], fromCache?: boolean, regions?: string[] }
  */
-const CANCER_QUERIES = {
-  breast: { zh: '乳腺癌 康复 故事', en: 'breast cancer survivor story' },
-  lung: { zh: '肺癌 康复 故事', en: 'lung cancer survivor story' },
-  colorectal: { zh: '结直肠癌 康复 故事', en: 'colorectal cancer survivor story' },
-  prostate: { zh: '前列腺癌 康复 故事', en: 'prostate cancer survivor story' },
-  thyroid: { zh: '甲状腺癌 康复 故事', en: 'thyroid cancer survivor story' },
-  melanoma: { zh: '黑色素瘤 康复 故事', en: 'melanoma survivor story' },
-  bladder: { zh: '膀胱癌 康复 故事', en: 'bladder cancer survivor story' },
-  kidney: { zh: '肾癌 康复 故事', en: 'kidney cancer survivor story' },
-  leukemia: { zh: '白血病 康复 故事', en: 'leukemia survivor story' },
-  lymphoma: { zh: '淋巴瘤 康复 故事', en: 'lymphoma survivor story' },
-  pancreatic: { zh: '胰腺癌 康复 故事', en: 'pancreatic cancer survivor story' },
-  ovarian: { zh: '卵巢癌 康复 故事', en: 'ovarian cancer survivor story' },
-  cervical: { zh: '宫颈癌 康复 故事', en: 'cervical cancer survivor story' },
-  stomach: { zh: '胃癌 康复 故事', en: 'stomach cancer survivor story' },
-  liver: { zh: '肝癌 康复 故事', en: 'liver cancer survivor story' },
-  esophageal: { zh: '食管癌 康复 故事', en: 'esophageal cancer survivor story' },
-  brain: { zh: '脑瘤 康复 故事', en: 'brain tumor survivor story' },
-  headneck: { zh: '头颈癌 康复 故事', en: 'head neck cancer survivor story' },
-  myeloma: { zh: '多发性骨髓瘤 康复 故事', en: 'multiple myeloma survivor story' },
-  uterine: { zh: '子宫内膜癌 康复 故事', en: 'uterine cancer survivor story' },
+
+const DEMO_STORIES = [
+  {
+    id: 'demo-us-1',
+    title: 'Breast Cancer Survivor Celebrates 10-Year Milestone',
+    excerpt: 'After completing treatment, she founded a support group for young survivors. "Every day is a gift," she says.',
+    content: 'A breast cancer survivor marks a decade of remission. She credits support from family and fellow survivors.',
+    category: 'Long-term',
+    cancerType: 'Breast',
+    yearsSince: 10,
+    tags: ['Breast'],
+    sourceName: 'XinBridge Hope',
+    sourceUrl: 'https://www.cancer.org',
+    region: 'us',
+    fetchedAt: null,
+  },
+  {
+    id: 'demo-ca-1',
+    title: 'Lung Cancer Patient Returns to Running',
+    excerpt: 'Six months post-surgery, he completed his first 5K. "Small wins add up," he shared.',
+    content: 'A lung cancer survivor gradually regained strength and returned to running. Community support made the difference.',
+    category: 'Long-term',
+    cancerType: 'Lung',
+    yearsSince: 2,
+    tags: ['Lung'],
+    sourceName: 'XinBridge Hope',
+    sourceUrl: 'https://www.cancer.ca',
+    region: 'ca',
+    fetchedAt: null,
+  },
+  {
+    id: 'demo-cn-1',
+    title: '抗癌五年，她选择用音乐陪伴病友',
+    excerpt: '确诊后坚持治疗与创作，如今用歌声为病房带去温暖。',
+    content: '一位乳腺癌患者康复后投身音乐创作，用歌声陪伴正在治疗中的病友。',
+    category: '心理',
+    cancerType: '乳腺癌',
+    yearsSince: 5,
+    tags: ['乳腺癌'],
+    sourceName: '心桥希望',
+    sourceUrl: 'https://www.caca.org.cn',
+    region: 'cn',
+    fetchedAt: null,
+  },
+]
+
+const REGION_QUERIES = {
+  us: {
+    zh: '美国 癌症 康复  survivor story',
+    en: 'cancer survivor story recovery milestone patient advocacy US',
+  },
+  ca: {
+    zh: '加拿大 癌症 康复  survivor',
+    en: 'cancer survivor story Canada CBC health recovery',
+  },
+  cn: {
+    zh: '抗癌故事 康复心得 病友分享',
+    en: '抗癌故事 康复心得 China cancer recovery story',
+  },
+}
+
+const BLOCKED_PATTERNS = [
+  /\bclinical trial\b/i,
+  /\bphase [123] trial\b/i,
+  /\bpharmaceutical\b/i,
+  /\bFDA (approval|approves)\b/i,
+  /\b( drug | medication )\b/i,
+  /\b(化疗|放疗)\s*(药物|新药)/,
+  /\bmiracle cure\b/i,
+  /\b(死亡|去世|不治|晚期)\s*(患者|病例)/,
+  /\bfatal\b/i,
+  /\bpassed away\b/i,
+  /\btragically\b/i,
+]
+
+function shouldBlock(text) {
+  if (!text || typeof text !== 'string') return true
+  const t = text.toLowerCase()
+  return BLOCKED_PATTERNS.some((p) => p.test(t))
+}
+
+function domainFromUrl(url) {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, '')
+    if (host.includes('cancer.org')) return 'American Cancer Society'
+    if (host.includes('cancer.ca')) return 'Canadian Cancer Society'
+    if (host.includes('caca.org.cn')) return '中国抗癌协会'
+    if (host.includes('cancer.gov')) return 'National Cancer Institute'
+    if (host.includes('survivornet')) return 'SurvivorNet'
+    if (host.includes('dingxiangyuan')) return '丁香园'
+    return host
+  } catch {
+    return 'Web'
+  }
+}
+
+function buildStoriesFromSerper(organic, region, cancerName, locale, cancer) {
+  const stories = []
+  for (let i = 0; i < Math.min(organic.length, 5); i++) {
+    const item = organic[i]
+    const title = item.title || ''
+    const snippet = item.snippet || ''
+    if (shouldBlock(title) || shouldBlock(snippet)) continue
+
+    const id = `pulse-${region}-${Date.now()}-${i}`
+    stories.push({
+      id,
+      title,
+      excerpt: snippet.slice(0, 160) + (snippet.length > 160 ? '...' : ''),
+      content: snippet + (locale === 'zh' ? '\n\n点击下方链接阅读完整故事。' : '\n\nClick the link below to read the full story.'),
+      category: locale === 'zh' ? '长期' : 'Long-term',
+      cancerType: cancerName,
+      yearsSince: 1 + (i % 4),
+      tags: [cancerName],
+      sourceName: domainFromUrl(item.link || ''),
+      sourceUrl: item.link || 'https://www.cancer.org',
+      region,
+      fetchedAt: Date.now(),
+    })
+  }
+  return stories
+}
+
+async function searchSerper(apiKey, query, gl, hl) {
+  const res = await fetch('https://google.serper.dev/search', {
+    method: 'POST',
+    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: query, num: 5, gl, hl }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  const data = await res.json()
+  return data.organic || []
 }
 
 const CANCER_NAMES = {
@@ -51,93 +164,76 @@ const CANCER_NAMES = {
   uterine: { zh: '子宫内膜癌', en: 'Uterine' },
 }
 
-function domainFromUrl(url) {
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, '')
-    if (host.includes('cancer.org')) return 'American Cancer Society'
-    if (host.includes('cancerresearchuk')) return 'Cancer Research UK'
-    if (host.includes('cancer.gov')) return 'National Cancer Institute'
-    if (host.includes('caca.org.cn')) return '中国抗癌协会'
-    return host
-  } catch {
-    return 'Web'
-  }
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end()
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const cancer = req.query.cancer || 'breast'
   const locale = (req.query.locale || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en'
   const apiKey = process.env.SERPER_API_KEY
+  const cancerName = (CANCER_NAMES[cancer] || CANCER_NAMES.breast)[locale]
 
   if (!apiKey) {
-    return res.status(503).json({
-      error: 'Refresh API not configured',
-      message: 'Set SERPER_API_KEY in Vercel environment variables. Get a free key at https://serper.dev',
+    const demo = DEMO_STORIES.map((s) => ({
+      ...s,
+      fetchedAt: Date.now(),
+    }))
+    return res.status(200).json({
+      stories: demo,
+      fromCache: false,
+      regions: ['us', 'ca', 'cn'],
+      message: 'Using curated stories. Set SERPER_API_KEY for live search.',
     })
   }
 
-  const queryConfig = CANCER_QUERIES[cancer] || CANCER_QUERIES.breast
-  const searchQuery = queryConfig[locale]
-  const cancerName = (CANCER_NAMES[cancer] || CANCER_NAMES.breast)[locale]
+  const seenUrls = new Set()
+  const allStories = []
 
   try {
-    const response = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: searchQuery,
-        num: 10,
-        gl: locale === 'zh' ? 'cn' : 'us',
-        hl: locale === 'zh' ? 'zh-cn' : 'en',
-      }),
-    })
+    const searches = [
+      { region: 'us', query: REGION_QUERIES.us[locale], gl: 'us', hl: locale === 'zh' ? 'zh-cn' : 'en' },
+      { region: 'ca', query: REGION_QUERIES.ca[locale], gl: 'ca', hl: locale === 'zh' ? 'zh-cn' : 'en' },
+      { region: 'cn', query: REGION_QUERIES.cn[locale], gl: 'cn', hl: 'zh-cn' },
+    ]
 
-    if (!response.ok) {
-      const text = await response.text()
-      return res.status(502).json({
-        error: 'Search API error',
-        message: text || response.statusText,
-      })
+    const results = await Promise.allSettled(
+      searches.map(({ region, query, gl, hl }) =>
+        searchSerper(apiKey, query, gl, hl).then((organic) => ({ region, organic }))
+      )
+    )
+
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue
+      const { region, organic } = r.value
+      const regionStories = buildStoriesFromSerper(organic, region, cancerName, locale, cancer)
+      for (const s of regionStories) {
+        const key = (s.sourceUrl || s.title || '').toLowerCase()
+        if (key && !seenUrls.has(key)) {
+          seenUrls.add(key)
+          allStories.push(s)
+        }
+      }
     }
 
-    const data = await response.json()
-    const organic = data.organic || []
-
-    const stories = organic.slice(0, 10).map((item, i) => ({
-      id: `refresh-${cancer}-${Date.now()}-${i}`,
-      title: item.title || 'Survivor Story',
-      excerpt: (item.snippet || '').slice(0, 150) + (item.snippet?.length > 150 ? '...' : ''),
-      content: (item.snippet || '') + (locale === 'zh' ? '\n\n点击下方链接阅读完整故事。' : '\n\nClick the link below to read the full story.'),
-      category: locale === 'zh' ? '长期' : 'Long-term',
-      cancerType: cancerName,
-      yearsSince: 2 + (i % 5),
-      tags: [cancerName],
-      sourceName: domainFromUrl(item.link || ''),
-      sourceUrl: item.link || 'https://www.cancer.org',
-    }))
-
-    return res.status(200).json({ stories, count: stories.length })
+    const deduped = allStories.slice(0, 10)
+    return res.status(200).json({
+      stories: deduped,
+      fromCache: false,
+      regions: ['us', 'ca', 'cn'],
+      count: deduped.length,
+    })
   } catch (err) {
-    console.error('Refresh stories error:', err)
-    return res.status(500).json({
-      error: 'Internal error',
-      message: err.message || 'Unknown error',
+    console.error('Global Pulse error:', err)
+    const demo = DEMO_STORIES.map((s) => ({ ...s, fetchedAt: Date.now() }))
+    return res.status(200).json({
+      stories: demo,
+      fromCache: false,
+      regions: ['us', 'ca', 'cn'],
+      message: 'Search unavailable, showing curated stories.',
     })
   }
 }

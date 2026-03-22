@@ -10,12 +10,44 @@ import {
 } from '../contexts/WebLLMContext'
 import { useTranslation, useLocale } from '../i18n/context'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 import { getAIResponse } from '../data/aiResponses'
 import { getSuggestions } from '../data/chatSuggestions'
+import { buildChatHistory } from '../lib/chatContext'
 import type { ChatMessage } from '../types'
 
 const SOS_KEYWORDS = ['sos', 'i give up', '救命', '放弃', '受不了了', '撑不住了']
-const TYPEWRITER_MS_PER_CHAR = 18
+
+type ScopeResult = 'allow' | 'crisis' | 'policy'
+
+/**
+ * Intelligent scope detection. Distinguishes:
+ * - crisis: direct distress (suicide/self-harm)—use therapeutic response, not cold policy
+ * - policy: clearly out-of-scope (explicit sexual)—formal boundary
+ * - allow: let LLM handle (nuanced questions, "is it normal to feel X?", third-person, etc.)
+ */
+function getScopeResult(input: string): ScopeResult {
+  const lower = input.toLowerCase().trim()
+
+  // Policy: only clearly inappropriate (explicit sexual solicitations—not "sexual function" or assault disclosure)
+  if (lower.includes('色情') || /\bporn\b/.test(lower)) return 'policy'
+  if (lower.includes('sex with me') || lower.includes('have sex with')) return 'policy'
+
+  // Crisis: direct first-person distress—short, clear phrases (avoid over-matching)
+  const crisisPhrases = [
+    'kill myself', 'hurt myself', 'end my life', 'want to die', 'want to end it',
+    '不想活了', '不想活', '想死', '想自杀', '自残', '寻死',
+  ]
+  if (crisisPhrases.some((p) => lower.includes(p))) return 'crisis'
+
+  // "suicide" / "自杀" only when clearly first-person distress (not "my friend" or "prevention")
+  if ((lower.includes('自杀') || lower.includes('suicide')) &&
+      !lower.includes('朋友') && !lower.includes('friend') && !lower.includes('预防') && !lower.includes('prevention')) {
+    return 'crisis'
+  }
+
+  return 'allow'
+}
 const SCROLL_DEBOUNCE_MS = 50
 
 /** Skeleton for loading/thinking - shimmer effect */
@@ -57,15 +89,11 @@ const TypingIndicator = memo(function TypingIndicator() {
 /** Message bubble - soft lavender for AI, teal for user. Pop-in via framer-motion. */
 const MessageBubble = memo(function MessageBubble({
   msg,
-  visibleText,
   index,
 }: {
   msg: ChatMessage
-  visibleText?: string | null
   index: number
 }) {
-  const text = visibleText !== undefined && visibleText !== null ? visibleText : msg.text
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12, scale: 0.96 }}
@@ -80,7 +108,7 @@ const MessageBubble = memo(function MessageBubble({
             : 'bg-[#f3efff] border border-[#e6d9f5]/60 text-[var(--color-text)] rounded-bl-md'
         }`}
       >
-        <p className="text-base leading-6 whitespace-pre-wrap">{text}</p>
+        <p className="text-base leading-6 whitespace-pre-wrap">{msg.text}</p>
       </div>
     </motion.div>
   )
@@ -155,8 +183,7 @@ export default function Chat() {
   ])
   const [inputText, setInputText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [typingMessageId, setTypingMessageId] = useState<string | null>(null)
-  const [typingLength, setTypingLength] = useState(0)
+  const [generatingMessageId, setGeneratingMessageId] = useState<string | null>(null)
   const [lastResponseWasSOS, setLastResponseWasSOS] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -185,36 +212,18 @@ export default function Chat() {
         scrollTimeoutRef.current = null
       }
     }
-  }, [messages, typingLength, isGenerating, scrollToBottom])
+  }, [messages, isGenerating, scrollToBottom])
 
   useEffect(() => {
     init()
   }, [init])
-
-  useEffect(() => {
-    if (!typingMessageId) return
-    const msg = messages.find((m) => m.id === typingMessageId)
-    if (!msg || msg.isUser) {
-      setTypingMessageId(null)
-      return
-    }
-    const fullLen = msg.text.length
-    if (typingLength >= fullLen) {
-      setTypingMessageId(null)
-      setTypingLength(0)
-      return
-    }
-    const tid = setTimeout(() => {
-      setTypingLength((prev) => Math.min(prev + 2, fullLen))
-    }, TYPEWRITER_MS_PER_CHAR)
-    return () => clearTimeout(tid)
-  }, [typingMessageId, typingLength, messages])
 
   const sendMessage = async () => {
     const trimmed = inputText.trim()
     if (!trimmed) return
 
     const isSOS = SOS_KEYWORDS.some((k) => trimmed.toLowerCase().includes(k))
+    const scope = getScopeResult(trimmed)
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -225,21 +234,38 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMsg])
     setInputText('')
     setIsGenerating(true)
-    setTypingMessageId(null)
-    setTypingLength(0)
     setLastResponseWasSOS(false)
 
     abortRef.current = new AbortController()
     const signal = abortRef.current.signal
 
-    const contextAppendix = '' // Disabled: speeds up inference, user question gets full focus
+    let aiMsgIdForAbort: string | null = null
 
     try {
       let aiText: string
 
-      // SOS: instant template + Quick SOS / Family Contact chips (prioritize support)
-      if (isSOS) {
-        await new Promise((r) => setTimeout(r, 200))
+      // Crisis (distress): professional therapeutic response—validating, warm
+      if (scope === 'crisis') {
+        aiText = getAIResponse(trimmed, locale, 'crisisSupport')
+        setLastResponseWasSOS(true)
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: aiText,
+          isUser: false,
+          timestamp: Date.now(),
+        }
+        setMessages((prev) => [...prev, aiMsg])
+      } else if (scope === 'policy') {
+        aiText = getAIResponse(trimmed, locale, 'unsafe')
+        setLastResponseWasSOS(true)
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: aiText,
+          isUser: false,
+          timestamp: Date.now(),
+        }
+        setMessages((prev) => [...prev, aiMsg])
+      } else if (isSOS) {
         aiText = getAIResponse(trimmed, locale, 'sos')
         setLastResponseWasSOS(true)
         const aiMsg: ChatMessage = {
@@ -249,20 +275,19 @@ export default function Chat() {
           timestamp: Date.now(),
         }
         setMessages((prev) => [...prev, aiMsg])
-        setTypingMessageId(aiMsg.id)
-        setTypingLength(0)
       } else if (status === 'ready') {
-        // Minimal history = fastest first token (only current question)
-        const history = [{ role: 'user' as const, content: trimmed }]
-
+        const { messages: history, contextAppendix: historyAppendix } = buildChatHistory(messages, trimmed, locale)
         const aiMsgId = (Date.now() + 1).toString()
-        let streamedAny = false
+        aiMsgIdForAbort = aiMsgId
+
+        // Optimistic bubble: show skeleton immediately while LLM reasons
+        setMessages((prev) => [...prev, { id: aiMsgId, text: '', isUser: false, timestamp: Date.now() }])
+        setGeneratingMessageId(aiMsgId)
         const opts = {
           systemPromptOverride: systemPromptOverride ?? undefined,
-          contextAppendix,
+          contextAppendix: historyAppendix,
           signal,
           onToken: (partial: string) => {
-            streamedAny = true
             setMessages((prev) => {
               const rest = prev.filter((m) => m.id !== aiMsgId)
               return [...rest, { id: aiMsgId, text: partial, isUser: false, timestamp: Date.now() }]
@@ -281,14 +306,8 @@ export default function Chat() {
           }
           return [...prev, { id: aiMsgId, text: aiText, isUser: false, timestamp: Date.now() }]
         })
-
-        if (!streamedAny) {
-          setTypingMessageId(aiMsgId)
-          setTypingLength(0)
-        }
       } else {
         // Model not loaded: graceful template fallback
-        await new Promise((r) => setTimeout(r, 300))
         aiText = getAIResponse(trimmed, locale)
         const aiMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -297,11 +316,14 @@ export default function Chat() {
           timestamp: Date.now(),
         }
         setMessages((prev) => [...prev, aiMsg])
-        setTypingMessageId(aiMsg.id)
-        setTypingLength(0)
       }
     } catch (err) {
-      if ((err as Error)?.name === 'AbortError') return
+      if ((err as Error)?.name === 'AbortError') {
+        if (aiMsgIdForAbort) {
+          setMessages((prev) => prev.filter((m) => m.id !== aiMsgIdForAbort))
+        }
+        return
+      }
       const fallback = getAIResponse(trimmed, locale)
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -310,10 +332,9 @@ export default function Chat() {
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, aiMsg])
-      setTypingMessageId(aiMsg.id)
-      setTypingLength(0)
     } finally {
       setIsGenerating(false)
+      setGeneratingMessageId(null)
       abortRef.current = null
     }
   }
@@ -336,7 +357,7 @@ export default function Chat() {
   return (
     <div className="h-dvh flex flex-col overflow-hidden relative">
       <div className="absolute inset-0 -z-10">
-        <img src={images.handsCare} alt="" className="w-full h-full object-cover opacity-15" />
+        <ImgWithFallback src={images.handsCare} alt="" className="w-full h-full object-cover opacity-15" fallbackClassName="w-full h-full object-cover opacity-15" />
         <div className="absolute inset-0 bg-[var(--color-bg)]/95" />
       </div>
 
@@ -387,15 +408,14 @@ export default function Chat() {
 
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
         <AnimatePresence mode="popLayout">
-          {messages.map((msg, i) => (
-            <MessageBubble
-              key={msg.id}
-              msg={msg}
-              visibleText={typingMessageId === msg.id ? msg.text.slice(0, typingLength) : null}
-              index={i}
-            />
-          ))}
-          {isGenerating && status === 'ready' && <TypingIndicator />}
+          {messages.map((msg, i) => {
+            const isPendingEmpty = msg.id === generatingMessageId && !msg.text && isGenerating
+            if (isPendingEmpty) {
+              return <SkeletonBubble key={msg.id} />
+            }
+            return <MessageBubble key={msg.id} msg={msg} index={i} />
+          })}
+          {isGenerating && status === 'ready' && !generatingMessageId && <TypingIndicator />}
           {isGenerating && status !== 'ready' && <SkeletonBubble />}
         </AnimatePresence>
         <div ref={bottomRef} className="h-2" aria-hidden />

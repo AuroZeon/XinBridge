@@ -5,6 +5,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { setItem } from '../utils/storage'
 import { useTranslation } from '../i18n/context'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 
 type Phase = 'inhale' | 'hold' | 'exhale'
 
@@ -104,7 +105,7 @@ export default function Breathing({ mode = 'normal' }: BreathingProps) {
   return (
     <div className="min-h-dvh pt-safe pb-safe relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
-        <img src={images.softClouds} alt="" className="w-full h-full object-cover opacity-30" />
+        <ImgWithFallback src={images.softClouds} alt="" className="w-full h-full object-cover opacity-30" fallbackClassName="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-bg)]/95 via-[var(--color-bg)]/92 to-[var(--color-primary-subtle)]/20" />
       </div>
 

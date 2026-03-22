@@ -1,29 +1,28 @@
 /**
- * Curated imagery - Pexels (free, attribution required)
- * Professional healthcare/wellness visuals
- * URL format: /photos/{id}/{filename}?w={width}
+ * Curated imagery - Unsplash (free, reliable CDN)
+ * Format: https://images.unsplash.com/photo-{timestamp}-{hash}?w={width}&q=80
  */
-const P = (id: string, filename: string, w = 800) =>
-  `https://images.pexels.com/photos/${id}/${filename}?auto=compress&cs=tinysrgb&w=${w}`
+const U = (slug: string, w = 800) =>
+  `https://images.unsplash.com/${slug}?w=${w}&q=80&fit=crop`
 
-/** XinBridge logo - used for favicon, header, app icon */
+/** XinBridge logo */
 export const logo = '/xinbridge_logo_1.drawio.png'
 
 export const images = {
-  heroSunrise: P('6243769', 'pexels-photo-6243769.jpeg', 1200),
-  morningLight: P('4010464', 'pexels-photo-4010464.jpeg', 800),
-  oceanSunrise: P('33545', 'pexels-photo-33545.jpeg', 800),
-  warmSunset: P('2081128', 'pexels-photo-2081128.jpeg', 800),
-  natureGreen: P('1392084', 'pexels-photo-1392084.jpeg', 800),
-  softClouds: P('45848', 'pexels-photo-45848.jpeg', 800),
-  nightCalm: P('1072179', 'pexels-photo-1072179.jpeg', 800),
-  flowers: P('462118', 'pexels-photo-462118.jpeg', 800),
-  handsCare: P('6646916', 'pexels-photo-6646916.jpeg', 600),
-  sunshine: P('414612', 'pexels-photo-414612.jpeg', 600),
-  family: P('3184292', 'pexels-photo-3184292.jpeg', 600),
-  bookHope: P('159711', 'books-bookstore-book-reading-159711.jpeg', 600),
-  breath: P('1179229', 'pexels-photo-1179229.jpeg', 600),
-  sleepMoon: P('1252890', 'pexels-photo-1252890.jpeg', 600),
+  heroSunrise: U('photo-1507525428034-b723cf961d3e', 1200),
+  morningLight: U('photo-1470071459604-3b5ec3a7fe05', 800),
+  oceanSunrise: U('photo-1505142468610-359e7d316be0', 800),
+  warmSunset: U('photo-1519681393784-d120267933ba', 800),
+  natureGreen: U('photo-1441974231531-c6227db76b6e', 800),
+  softClouds: U('photo-1472214103451-9374bd1c798e', 800),
+  nightCalm: U('photo-1534796636902-acd3cc52864b', 800),
+  flowers: U('photo-1490750967868-88e448145051', 800),
+  handsCare: U('photo-1579684385127-1ef15d508118', 600),
+  sunshine: U('photo-1544367567-0f2fcb009e0b', 600),
+  family: U('photo-1529156069898-49953e39b3ac', 600),
+  bookHope: U('photo-1507842217343-583bb7270b66', 600),
+  breath: U('photo-1507003211169-0a1dd7228f2d', 600),
+  sleepMoon: U('photo-1519681393784-d120267933ba', 600),
 } as const
 
 export const menuImages: Record<string, string> = {
@@ -35,4 +34,5 @@ export const menuImages: Record<string, string> = {
   sleep: images.sleepMoon,
   caregiver: images.family,
   hope: images.bookHope,
+  games: images.softClouds,
 }

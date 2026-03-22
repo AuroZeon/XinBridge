@@ -1,24 +1,32 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { getHopeStories, getStoryCategories, getCancerTypes } from '../data/hopeStories'
 import type { HopeStory } from '../data/hopeStories'
 import { useTranslation, useLocale } from '../i18n/context'
-import { RefreshCw } from '../components/icons'
+import { useGlobalPulse } from '../hooks/useGlobalPulse'
+import { RefreshCw, Globe } from '../components/icons'
 import { images, logo } from '../data/mediaAssets'
-
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
+import { ImgWithFallback } from '../components/ImgWithFallback'
 
 export default function HopeLibrary() {
   const backTo = ((useLocation().state as { from?: string })?.from) ?? '/'
+  const navigate = useNavigate()
   const t = useTranslation()
   const locale = useLocale()
-  const hope = t.hope as Record<string, string>
+  const hope = t.hope as Record<string, unknown>
   const [filter, setFilter] = useState('all')
   const [cancerFilter, setCancerFilter] = useState('all')
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [refreshedStories, setRefreshedStories] = useState<HopeStory[]>([])
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshError, setRefreshError] = useState<string | null>(null)
+
+  const {
+    refreshedStories,
+    refreshing,
+    refreshError,
+    lastFetchedAt,
+    isOffline,
+    handleRefresh,
+  } = useGlobalPulse(cancerFilter, locale)
 
   const hopeStories = useMemo(() => getHopeStories(locale, new Date()), [locale])
   const storyCategories = getStoryCategories(locale)
@@ -31,38 +39,6 @@ export default function HopeLibrary() {
     return [...newOnes, ...hopeStories]
   }, [hopeStories, refreshedStories])
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true)
-    setRefreshError(null)
-    const cancer = cancerFilter === 'all' ? 'breast' : cancerFilter
-    const url = `${API_BASE}/api/refresh-stories?cancer=${encodeURIComponent(cancer)}&locale=${locale}`
-    try {
-      const res = await fetch(url)
-      const text = await res.text()
-      let data: { stories?: HopeStory[]; error?: string; message?: string }
-      try {
-        data = JSON.parse(text)
-      } catch {
-        setRefreshError(String(hope.refreshApiNotReady))
-        return
-      }
-      if (!res.ok) {
-        setRefreshError(String(hope.refreshError))
-        return
-      }
-      const stories = data.stories || []
-      setRefreshedStories((prev) => {
-        const seen = new Set(prev.map((s) => s.id))
-        const added = stories.filter((s: HopeStory) => !seen.has(s.id))
-        return [...added, ...prev]
-      })
-    } catch {
-      setRefreshError(String(hope.refreshError))
-    } finally {
-      setRefreshing(false)
-    }
-  }, [cancerFilter, locale, hope])
-
   const filtered = useMemo(() => {
     let list = allStories
     if (filter !== 'all') list = list.filter((s) => s.category === filter)
@@ -73,12 +49,34 @@ export default function HopeLibrary() {
     return list
   }, [allStories, filter, cancerFilter, cancerTypes])
 
-  const yearsText = (n: number) => locale === 'zh' ? `${n}年前` : `${n} years ago`
+  const yearsText = (n: number) => (locale === 'zh' ? `${n}年前` : `${n} years ago`)
+
+  const freshAgo = (fetchedAt: number | null | undefined) => {
+    if (!fetchedAt) return null
+    const mins = Math.floor((Date.now() - fetchedAt) / 60000)
+    const fn = hope.freshAgo as ((m: number) => string) | undefined
+    return fn ? fn(mins) : (mins < 60 ? `${mins} min ago` : `${Math.floor(mins / 60)} hr ago`)
+  }
+
+  const regionLabel = (r?: string) => {
+    if (!r) return null
+    if (r === 'us') return String(hope.regionUs ?? '🇺🇸')
+    if (r === 'ca') return String(hope.regionCa ?? '🇨🇦')
+    if (r === 'cn') return String(hope.regionCn ?? '🇨🇳')
+    return r
+  }
+
+  const handleRelate = (story: HopeStory) => {
+    const prompt = locale === 'zh'
+      ? `我刚读了这篇康复故事：「${story.title}」。请用简短的话告诉我，这样的故事对我正在经历的癌症治疗有什么启发或安慰？`
+      : `I just read this recovery story: "${story.title}". In 1–2 sentences, why might this story matter to me as someone going through cancer treatment?`
+    navigate('/chat', { state: { from: '/hope', relatePrompt: prompt } })
+  }
 
   return (
     <div className="min-h-dvh pt-safe pb-safe pb-12 bg-[var(--color-bg)]">
       <div className="relative -mx-4 mb-6 h-36 overflow-hidden rounded-b-2xl">
-        <img src={images.flowers} alt="" className="w-full h-full object-cover" />
+        <ImgWithFallback src={images.flowers} alt="" className="w-full h-full object-cover" fallbackClassName="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
         <div className="absolute bottom-5 left-5 right-5 flex items-center gap-4">
           <img src={logo} alt="XinBridge" className="w-12 h-12 rounded-full object-contain bg-white/20 shrink-0" />
@@ -89,21 +87,39 @@ export default function HopeLibrary() {
         </div>
       </div>
       <div className="px-4">
-      <header className="flex items-center justify-between gap-4 py-4 mb-4">
+      <header className="header-safe flex items-center justify-between gap-4 py-4 mb-4">
         <Link to={backTo} className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
       </header>
 
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 shrink-0 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? String(hope.refreshing) : String(hope.refresh)}
-        </button>
-        {refreshError && (
-          <span className="text-xs text-red-600">{refreshError}</span>
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleRefresh()}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            <span className="relative flex items-center justify-center w-5 h-5 shrink-0">
+              {refreshing ? (
+                <Globe className="w-5 h-5 animate-pulse-radar text-[var(--color-primary)]" />
+              ) : (
+                <RefreshCw className="w-4 h-4 shrink-0" />
+              )}
+            </span>
+            {refreshing ? String(hope.globalScan ?? hope.refreshing) : String(hope.refresh)}
+          </button>
+          {refreshError && (
+            <span className="text-xs text-red-600">{refreshError}</span>
+          )}
+        </div>
+        {(isOffline && refreshedStories.length > 0) && (
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {String(hope.offlineCached)}
+          </p>
+        )}
+        {lastFetchedAt && refreshedStories.length > 0 && !refreshing && (
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {String(hope.lastUpdated)}: {freshAgo(lastFetchedAt)}
+          </p>
         )}
       </div>
 
@@ -154,7 +170,7 @@ export default function HopeLibrary() {
 
       <div className="space-y-4 mt-2">
         {filtered.map((story) => (
-          <StoryCard
+          <PulseStoryCard
             key={story.id}
             story={story}
             expanded={expanded === story.id}
@@ -163,6 +179,10 @@ export default function HopeLibrary() {
             collapseLabel={String(hope.collapse)}
             yearsText={yearsText}
             sourceLabel={locale === 'zh' ? '来源' : 'Source'}
+            freshAgoText={freshAgo(story.fetchedAt)}
+            regionLabel={regionLabel(story.region)}
+            relateLabel={String(hope.relate)}
+            onRelate={() => handleRelate(story)}
           />
         ))}
       </div>
@@ -171,7 +191,7 @@ export default function HopeLibrary() {
   )
 }
 
-function StoryCard({
+function PulseStoryCard({
   story,
   expanded,
   onToggle,
@@ -179,6 +199,11 @@ function StoryCard({
   collapseLabel,
   yearsText,
   sourceLabel,
+  freshAgoText,
+  regionLabel,
+  relateLabel,
+  onRelate,
+  locale,
 }: {
   story: HopeStory
   expanded: boolean
@@ -187,9 +212,16 @@ function StoryCard({
   collapseLabel: string
   yearsText: (n: number) => string
   sourceLabel: string
+  freshAgoText: string | null
+  regionLabel: string | null
+  relateLabel: string
+  onRelate: () => void
+  locale: 'zh' | 'en'
 }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl border border-[var(--color-border-subtle)] overflow-hidden card-interactive"
     >
       <button
@@ -205,15 +237,20 @@ function StoryCard({
             {expanded ? collapseLabel : readLabel}
           </span>
         </div>
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-2 items-center">
           <span className="text-xs px-2 py-0.5 bg-[var(--color-primary-subtle)] text-[var(--color-primary)] rounded">
             {story.cancerType}
           </span>
           <span className="text-xs px-2 py-0.5 bg-gray-100 rounded text-[var(--color-text-secondary)]">
             {story.category}
           </span>
+          {regionLabel && (
+            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-800 rounded">
+              {regionLabel}
+            </span>
+          )}
           <span className="text-xs text-[var(--color-text-muted)]">
-            {yearsText(story.yearsSince)}
+            {freshAgoText || yearsText(story.yearsSince)}
           </span>
         </div>
       </button>
@@ -228,8 +265,16 @@ function StoryCard({
           >
             {sourceLabel}: {story.sourceName}
           </a>
+          <div className="mt-4">
+            <button
+              onClick={(e) => { e.stopPropagation(); onRelate() }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)] hover:text-white transition-colors"
+            >
+              {relateLabel}
+            </button>
+          </div>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

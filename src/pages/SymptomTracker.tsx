@@ -9,6 +9,7 @@ import confetti from 'canvas-confetti'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 import { BodyMap, type BodyPart, type BodyRegionId } from '../components/BodyMap'
 
 export interface BodySymptoms {
@@ -201,7 +202,7 @@ export default function SymptomTracker() {
   return (
     <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
-        <img src={images.natureGreen} alt="" className="w-full h-full object-cover opacity-[0.08]" />
+        <ImgWithFallback src={images.natureGreen} alt="" className="w-full h-full object-cover opacity-[0.08]" fallbackClassName="w-full h-full object-cover opacity-[0.08]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
 

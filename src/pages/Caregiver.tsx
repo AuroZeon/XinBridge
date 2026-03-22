@@ -4,6 +4,7 @@ import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
 import { CheckCircle2 } from '../components/icons'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 import ContactFamilyModal from '../components/ContactFamilyModal'
 
 const PRESET_IDS = ['anxious', 'support', 'lonely', 'tired'] as const
@@ -75,7 +76,7 @@ export default function Caregiver() {
   return (
     <div className="min-h-dvh pb-safe px-4 pb-12 relative bg-[var(--color-bg)]">
       <div className="fixed inset-0 -z-10">
-        <img src={images.family} alt="" className="w-full h-full object-cover opacity-[0.1]" />
+        <ImgWithFallback src={images.family} alt="" className="w-full h-full object-cover opacity-[0.1]" fallbackClassName="w-full h-full object-cover opacity-[0.1]" />
         <div className="absolute inset-0 bg-[var(--color-bg)]" />
       </div>
       <header className="header-safe flex items-center justify-between gap-4 pb-4 px-1">

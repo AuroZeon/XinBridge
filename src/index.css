@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 /* Professional design system - healthcare/wellness */
+/* iOS notch/status bar: ensure min 44px when env returns 0 (Capacitor/WebKit delay) */
 :root {
-  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 44px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* Primary - refined teal (trust, calm, professional) */
@@ -139,6 +140,17 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+/* Global Pulse - radar/globe scan */
+@keyframes pulse-radar {
+  0%, 100% { transform: rotate(0deg); opacity: 0.4; }
+  50% { transform: rotate(180deg); opacity: 0.8; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.3); }
+  50% { box-shadow: 0 0 20px 6px rgba(13, 148, 136, 0.2); }
+}
+.animate-pulse-radar { animation: pulse-radar 2s linear infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 
 /* Sleep / night mode - slow, drowsy animations */
 @keyframes sleep-drift {
@@ -231,7 +243,7 @@ body {
   100% { transform: translateX(-50%); }
 }
 .animate-ticker {
-  animation: ticker-scroll 50s linear infinite;
+  animation: ticker-scroll 120s linear infinite;
 }
 
 /* Legacy alias */

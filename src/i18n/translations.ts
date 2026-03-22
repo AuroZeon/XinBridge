@@ -44,6 +44,7 @@ export const translations: Record<Locale, Tr> = {
       sleep: { title: 'Night Support', subtitle: 'When you can\'t sleep' },
       caregiver: { title: 'Family Contact', subtitle: 'Notify family when you need support' },
       hope: { title: 'Hope Library', subtitle: 'Real recovery stories' },
+      games: { title: 'Zen Toys', subtitle: 'Flow state · calm body and mind' },
     },
 
     mood: {
@@ -226,11 +227,19 @@ export const translations: Record<Locale, Tr> = {
       read: 'Read',
       collapse: 'Collapse',
       all: 'All',
-      refresh: 'Refresh with new stories',
-      refreshing: 'Searching for new stories...',
+      refresh: 'Global Pulse',
+      refreshing: 'Scanning global communities for new light...',
       refreshed: 'Added new stories from the web',
       refreshError: 'Unable to fetch new stories right now. Please try again later.',
       refreshApiNotReady: 'Unable to fetch new stories right now. Please try again later.',
+      globalScan: 'Scanning global communities for new light...',
+      freshAgo: (minutes: number) => minutes < 60 ? `Fresh from ${minutes} min ago` : `Fresh from ${Math.floor(minutes / 60)} hr ago`,
+      lastUpdated: 'Last updated',
+      offlineCached: 'Showing cached stories (offline)',
+      relate: 'Why this matters to me',
+      regionUs: 'US',
+      regionCa: 'Canada',
+      regionCn: 'China',
     },
 
     sos: {
@@ -307,6 +316,7 @@ export const translations: Record<Locale, Tr> = {
       sleep: { title: '夜晚陪伴', subtitle: '睡不着的时候' },
       caregiver: { title: '家人联系', subtitle: '需要支持时通知家人' },
       hope: { title: '希望图书馆', subtitle: '真实康复故事' },
+      games: { title: '禅趣玩具', subtitle: '进入心流，平静身心' },
     },
 
     mood: {
@@ -489,11 +499,19 @@ export const translations: Record<Locale, Tr> = {
       read: '阅读',
       collapse: '收起',
       all: '全部',
-      refresh: '刷新获取新故事',
-      refreshing: '正在搜索新故事...',
+      refresh: '全球脉搏',
+      refreshing: '正在扫描全球社区，寻找新光...',
       refreshed: '已从网络添加新故事',
       refreshError: '暂时无法获取新故事，请稍后再试。',
       refreshApiNotReady: '暂时无法获取新故事，请稍后再试。',
+      globalScan: '正在扫描全球社区，寻找新光...',
+      freshAgo: (minutes: number) => minutes < 60 ? `${minutes} 分钟前更新` : `${Math.floor(minutes / 60)} 小时前更新`,
+      lastUpdated: '上次更新',
+      offlineCached: '显示已缓存故事（离线）',
+      relate: '和我有什么关系',
+      regionUs: '美国',
+      regionCa: '加拿大',
+      regionCn: '中国',
     },
 
     sos: {

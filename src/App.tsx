@@ -13,6 +13,8 @@ import DoctorQuestions from './pages/DoctorQuestions'
 import HopeLibrary from './pages/HopeLibrary'
 import QuickSOS from './pages/QuickSOS'
 import SleepSupport from './pages/SleepSupport'
+import Games from './pages/Games'
+import Gallery from './pages/Gallery'
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
         <Route path="/hope" element={<HopeLibrary />} />
         <Route path="/sos" element={<QuickSOS />} />
         <Route path="/sleep" element={<SleepSupport />} />
+        <Route path="/games" element={<Games />} />
+        <Route path="/gallery" element={<Gallery />} />
           </Routes>
         </div>
       </MotionCalmProvider>

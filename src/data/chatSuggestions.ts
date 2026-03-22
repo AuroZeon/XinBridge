@@ -12,7 +12,7 @@ export interface SuggestionChip {
 }
 
 const ALL_CHIPS: SuggestionChip[] = [
-  { label: 'Need a distraction?', labelZh: '想分散一下注意力', text: 'I need a distraction', textZh: '我想分散一下注意力' },
+  { label: 'Need a distraction?', labelZh: '想分散一下注意力', text: 'I need a distraction', textZh: '我想分散一下注意力', href: '/games' },
   { label: 'Tell me a sleep story', labelZh: '讲个助眠故事', text: 'I can\'t sleep, tell me something calming', textZh: '睡不着，想听点助眠的', href: '/sleep' },
   { label: 'Start breathing exercise', labelZh: '开始呼吸练习', text: 'I want to try breathing', textZh: '我想试试呼吸练习', href: '/breathing' },
   { label: 'Go to Night Support', labelZh: '去夜晚陪伴', text: 'Take me to Night Support', textZh: '带我去夜晚陪伴', href: '/sleep' },

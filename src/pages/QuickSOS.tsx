@@ -5,6 +5,7 @@ import { Motion } from '@capacitor/motion'
 import { useTranslation, useLocale } from '../i18n/context'
 import { HeartHandshake } from '../components/icons'
 import { images } from '../data/mediaAssets'
+import { ImgWithFallback } from '../components/ImgWithFallback'
 import ContactFamilyModal from '../components/ContactFamilyModal'
 
 const FACE_DOWN_Z = -8
@@ -111,7 +112,7 @@ export default function QuickSOS() {
     return (
       <div className="min-h-dvh pt-safe pb-safe px-6 flex flex-col items-center justify-center relative">
         <div className="absolute inset-0 z-0">
-          <img src={images.warmSunset} alt="" className="w-full h-full object-cover opacity-40" />
+          <ImgWithFallback src={images.warmSunset} alt="" className="w-full h-full object-cover opacity-40" fallbackClassName="w-full h-full object-cover opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/80" />
         </div>
         <div className="relative z-10 flex flex-col items-center max-w-sm w-full animate-fade-in">
@@ -178,7 +179,7 @@ export default function QuickSOS() {
     return (
       <div className="min-h-dvh pt-safe pb-safe relative">
         <div className="absolute inset-0 z-0">
-          <img src={images.warmSunset} alt="" className="w-full h-full object-cover opacity-30" />
+          <ImgWithFallback src={images.warmSunset} alt="" className="w-full h-full object-cover opacity-30" fallbackClassName="w-full h-full object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-b from-amber-950/20 via-amber-900/10 to-black/30" />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center min-h-dvh px-6 py-12">
@@ -223,7 +224,7 @@ export default function QuickSOS() {
   return (
     <div className="min-h-dvh pt-safe pb-safe relative">
       <div className="absolute inset-0 z-0">
-        <img src={images.oceanSunrise} alt="" className="w-full h-full object-cover opacity-30" />
+        <ImgWithFallback src={images.oceanSunrise} alt="" className="w-full h-full object-cover opacity-30" fallbackClassName="w-full h-full object-cover opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/90" />
       </div>
       <div className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-6">

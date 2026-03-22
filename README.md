@@ -11,7 +11,10 @@
 - **Capacitor**（iOS / Android 原生打包，含 Haptics、Motion）
 - **Tailwind CSS**
 - **Framer Motion**（动画与手势）
-- **Swiper**（Cover Flow 滑动）
+- **Swiper**（Cover Flow 滑动，用于 Night Sanctuary）
+- **Matter.js**（禅趣游戏物理引擎）
+- **Howler**（音频播放）
+- **Lucide React**（图标）
 - **React Router**
 
 ## 功能特性
@@ -28,6 +31,8 @@
 8. **家人联系** – 通知家人 + 写下「说不出口的话」  
 9. **希望图书馆** – 康复故事，支持「刷新」从网络获取新故事  
 10. **Quick SOS** – 困难时刻立即展示 5-4-3-2-1 grounding 练习，同时可联系家人  
+11. **禅趣玩具 Zen Toys** – 5 款放松小游戏：流沙禅园、星座连线、呼吸同步、几何花园、光绘；支持任务系统、星火收集、希望画廊  
+12. **希望画廊 Gallery of Hope** – 展示已解锁的星星、宝藏与形状，可下滑或点返回退出  
 
 ### 主动与情境感知
 
@@ -101,10 +106,21 @@ XinBridge/
 │   │   ├── DoctorQuestions.tsx
 │   │   ├── HopeLibrary.tsx
 │   │   ├── QuickSOS.tsx
-│   │   └── SleepSupport.tsx
+│   │   ├── SleepSupport.tsx
+│   │   ├── Games.tsx
+│   │   ├── Gallery.tsx
+│   │   └── games/
+│   │       ├── GameFluidSand.tsx
+│   │       ├── GameConstellation.tsx
+│   │       ├── GameBreatheSync.tsx
+│   │       ├── GameGeometricGarden.tsx
+│   │       └── GameLightPaint.tsx
 │   ├── components/
 │   │   ├── BreathingOrb.tsx
 │   │   ├── BodyScanSilhouette.tsx
+│   │   ├── NightlyQuestHUD.tsx
+│   │   ├── MissionCompleteBanner.tsx
+│   │   ├── ImgWithFallback.tsx
 │   │   └── ...
 │   ├── data/
 │   │   ├── moodMessages.ts
@@ -114,12 +130,17 @@ XinBridge/
 │   │   ├── sleepSoundscape.ts
 │   │   ├── sleepVoiceTracks.ts
 │   │   ├── sleepAmbientTracks.ts
-│   │   └── contextualGreeting.ts
+│   │   ├── contextualGreeting.ts
+│   │   └── mediaAssets.ts
 │   ├── hooks/
 │   │   ├── useSleepVoice.ts
-│   │   └── useSoundscape.ts
+│   │   ├── useSoundscape.ts
+│   │   └── useMissions.ts
 │   ├── utils/
-│   │   └── storage.ts
+│   │   ├── storage.ts
+│   │   ├── zenHaptics.ts
+│   │   ├── zenTone.ts
+│   │   └── celebration.ts
 │   ├── contexts/
 │   │   └── WebLLMContext.tsx
 │   └── types/
@@ -136,6 +157,57 @@ XinBridge/
 - Qwen-0.5B 为手机优化，新机型（Pixel 8 / iPhone 15 Pro）可达 ~40 tokens/s
 - 推荐：8–12 GB RAM，Snapdragon 8+ / Apple A17；4–8 GB 手机也可运行，速度较慢
 - 不支持时自动使用预设回复
+
+## 心语陪伴（Chatbot）工作原理
+
+心语陪伴是心桥的核心 AI 对话模块，全程本地运行，不依赖云端 API。以下说明其架构、推理流程与安全边界。
+
+### 架构与平台选择
+
+中心逻辑在 `src/contexts/WebLLMContext.tsx`，根据运行环境自动选择推理引擎：
+
+| 环境 | 引擎 | 模型 |
+|------|------|------|
+| 桌面浏览器 | WebLLM | Llama-3.2-1B-Instruct-q4f16_1-MLC |
+| 移动端原生（Capacitor iOS/Android） | Transformers.js（主线程） | Qwen2.5-0.5B-Instruct |
+| 移动端浏览器 | Transformers.js（Worker） | Qwen2.5-0.5B-Instruct |
+
+- **桌面**：WebGPU 加速，支持流式输出；Capacitor WebView 中 Worker 不稳定，故移动原生改用主线程。
+- **移动浏览器**：优先使用 Worker，失败时回退到主线程。
+
+### 系统提示词（人格设定）
+
+- **默认人格**（`src/lib/empathyPrompt.ts`）：心桥 AI， empathetic、温和；多用比喻，避免医学术语；不提供医疗建议；对危机信号敏感。
+- **Night Companion**：从「夜晚陪伴」页面进入聊天时（`fromSleep` 为真），自动切换为夜间陪伴模式：短句、小写、侧重身体 grounding，语气安静。
+
+### 消息处理流程（Scope）
+
+发送消息时，先做简单范围判断（`getScopeResult`）：
+
+1. **crisis**（危机）—— 检测到明显 distress / 自杀相关表述 → 使用预设 `crisisSupport` 回复，强调倾听与专业求助渠道，不走 LLM。
+2. **policy**（边界）—— 明显超出支持范围（如政治、暴力等）→ 使用 `unsafe` 预设，温和说明边界，引导回到心桥可陪伴的话题。
+3. **allow** —— 正常范围，交给 LLM 生成回复。
+
+同时，若用户输入包含 SOS 关键词（如「救命」「放弃」），会触发 `sos` 预设，优先提供 5-4-3-2-1 grounding 等即时支持。
+
+### 预设回复与兜底
+
+当 LLM 未加载、出错或返回空内容时，使用 `src/data/aiResponses.ts` 中的预设回复：
+
+- 关键词匹配（如：害怕、治疗、孤单、疲惫、恶心、疼痛、睡眠、愤怒、sos）→ 返回对应预设。
+- 无匹配 → 使用默认通用安慰回复。
+- Crisis / policy 场景直接使用 `crisisSupport` 或 `unsafe`。
+
+### 推理参数
+
+- **WebLLM**：`max_tokens: 600`，`temperature: 0.85`，`repetition_penalty: 1.12`，`frequency_penalty: 0.3`。
+- **Transformers.js**：`max_new_tokens: 400`，非流式。
+- 输出会经 `dedupeParagraphs()` 去除重复段落。
+
+### 扩展能力
+
+- `options?.systemPromptOverride`：可覆盖默认系统提示词（如 Night Companion）。
+- `options?.contextAppendix`：可追加额外上下文（当前默认关闭，以加速首 token 生成）。
 
 ## 希望图书馆刷新功能
 
@@ -155,6 +227,16 @@ XinBridge/
 - **呼吸球**：4 秒吸 → 2 秒屏 → 6 秒呼，每 3 循环放慢 5%，引导心率下降；支持 Haptics 反馈  
 - **红光护眼**：可选 `sepia(100%) saturate(200%) hue-rotate(-30deg)` 去除蓝光  
 - **下滑关闭**：无需顶部导航，下滑手势返回首页  
+
+## 禅趣玩具 Zen Toys
+
+- **流沙禅园 Fluid Sand**：Matter.js 物理沙粒，倾斜重力、拨沙交互，拨开花朵宝藏即完成任务  
+- **星座连线 Constellation**：连线点成星座，完成时播放音符  
+- **呼吸同步 Breathe-Sync**：中央球体呼吸，点击同步节奏  
+- **几何花园 Geometric Garden**：投放并堆叠形状，完成 10 块高塔任务  
+- **光绘 Light-Paint**：发光画笔，约 10 秒衰减  
+
+任务系统（Nightly Quest HUD）、星火收集、任务完成 confetti、触觉与音效反馈；希望画廊展示已解锁内容。
 
 ## 后续扩展
 

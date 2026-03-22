@@ -21,6 +21,10 @@ export interface HopeStory {
   tags: string[]
   sourceName: string
   sourceUrl: string
+  /** Region: us, ca, cn */
+  region?: string
+  /** When fetched (ms). For "Fresh from X ago" display */
+  fetchedAt?: number | null
 }
 
 const CANCER_TYPES = [
