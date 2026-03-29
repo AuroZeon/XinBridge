@@ -12,7 +12,7 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { Wind, BookOpen, Volume2 } from '../components/icons'
 import { SoundWaveBars } from '../components/SoundWaveBars'
 import { SereneLayers } from '../components/SereneLayers'
-import { Cloud, Music, Square } from 'lucide-react'
+import { Cloud, Music, Square, X, Sun, Moon } from 'lucide-react'
 import { BodyScanSilhouette } from '../components/BodyScanSilhouette'
 import { BreathingOrb } from '../components/BreathingOrb'
 
@@ -85,10 +85,10 @@ export default function SleepSupport() {
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsRedShift(!isRedShift) }}
-            className="text-xs text-white/50 hover:text-white/80 px-2 py-1 rounded"
+            className="p-2 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
             aria-label={isRedShift ? 'Disable red shift' : 'Enable red shift'}
           >
-            {isRedShift ? '☀' : '🌙'}
+            {isRedShift ? <Sun className="w-5 h-5" strokeWidth={2} /> : <Moon className="w-5 h-5" strokeWidth={2} />}
           </button>
         </div>
       </div>
@@ -184,8 +184,11 @@ export default function SleepSupport() {
                   activePreset={audioPlayer.activePreset}
                   isLoading={audioPlayer.isLoading}
                   addFeedback={audioPlayer.addFeedback}
+                  mixerTracks={audioPlayer.mixerTracks}
                   applyPreset={audioPlayer.applyPreset}
                   handleAdd={audioPlayer.handleAdd}
+                  handleRemove={audioPlayer.handleRemove}
+                  handlePlayMix={audioPlayer.handlePlayMix}
                   locale={locale}
                   t={sleep}
                 />
@@ -195,7 +198,7 @@ export default function SleepSupport() {
               </div>
             )}
 
-            {/* Music panel - Ambient Piano & Celestial Pads - plays in-app via Howler */}
+            {/* Music panel - Ambient Piano & Celestial Pads - add to mixer */}
             {activeCard === 'music' && (
               <div className="bg-amber-500/10 rounded-2xl p-5 border border-amber-500/20 space-y-3">
                 <h3 className="font-semibold text-white">{locale === 'zh' ? '环境音乐' : 'Ambient music'}</h3>
@@ -220,6 +223,39 @@ export default function SleepSupport() {
                     {locale === 'zh' ? track.titleZh : track.title}
                   </button>
                 ))}
+                {audioPlayer.mixerTracks.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs text-white/50">{locale === 'zh' ? '混音器音轨' : 'Mixer tracks'}</h4>
+                    {audioPlayer.mixerTracks.map((track, i) => (
+                      <div key={`${track.id}-${i}`} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10">
+                        <span className="text-sm text-white/80 truncate flex-1">{locale === 'zh' ? track.titleZh : track.titleEn}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); audioPlayer.handleRemove(i) }}
+                          disabled={audioPlayer.isLoading}
+                          className="shrink-0 w-8 h-8 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center text-red-400"
+                          aria-label={locale === 'zh' ? '移除' : 'Remove'}
+                        >
+                          <X className="w-4 h-4" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {audioPlayer.mixerTracks.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      audioPlayer.handlePlayMix()
+                    }}
+                    disabled={audioPlayer.isLoading}
+                    className="mt-2 w-full py-3 rounded-xl bg-teal-500/60 hover:bg-teal-500/80 text-white font-medium flex items-center justify-center gap-2"
+                  >
+                    {locale === 'zh' ? `播放混音 (${audioPlayer.mixerTracks.length})` : `Play mix (${audioPlayer.mixerTracks.length})`}
+                  </button>
+                )}
                 <button type="button" onClick={(e) => { e.stopPropagation(); setActiveCard(null) }} className="text-sm text-white/60 hover:text-white">
                   {String(sleep.back)}
                 </button>
@@ -360,9 +396,9 @@ export default function SleepSupport() {
 
       </div>
 
-      {/* Now Playing bar - AnimatePresence slide up/down */}
+      {/* Now Playing bar - hide when in listening view (that view has its own stop button) */}
       <AnimatePresence>
-        {audioPlayer.isPlaying && audioPlayer.activeTrack && (
+        {audioPlayer.isPlaying && audioPlayer.activeTrack && view !== 'listening' && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

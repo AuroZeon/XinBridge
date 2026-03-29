@@ -200,7 +200,7 @@ export default function GameGeometricGarden({ locale, freeMode, reportProgress, 
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[#0a0a0c] pt-safe">
-      <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+      <div className="absolute top-safe left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
         <p className="text-sm text-white/60">
           {locale === 'zh' ? '轻触屏幕投放形状' : 'Tap to drop shapes'}
         </p>

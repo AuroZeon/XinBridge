@@ -1,8 +1,14 @@
 declare module 'howler' {
+  export const Howler: {
+    stop(): void
+    unload(): void
+  }
   export interface HowlOptions {
     src: string | string[]
+    html5?: boolean
     loop?: boolean
     volume?: number
+    preload?: boolean
     onload?: () => void
     onloaderror?: () => void
   }

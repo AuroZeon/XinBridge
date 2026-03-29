@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
-import { HeartHandshake, ChevronRight } from '../components/icons'
+import { HeartHandshake, ChevronRight, MenuIcons } from '../components/icons'
 import { images, logo, menuImages } from '../data/mediaAssets'
 import { ImgWithFallback } from '../components/ImgWithFallback'
 import { getWisdomPills } from '../data/wisdomPills'
@@ -82,15 +82,15 @@ export default function Home() {
       {/* Night Watchman dim overlay (1–4 AM) */}
       {isNightWatchman && (
         <div
-          className="absolute inset-0 z-[100] pointer-events-none bg-black/40 transition-opacity duration-500"
+          className="absolute inset-0 z-[100] pointer-events-none bg-black/25 transition-opacity duration-500"
           aria-hidden="true"
         />
       )}
       {/* Hope Ticker - micro-pills of wisdom */}
-      <div className="relative overflow-hidden border-b border-white/10 bg-[var(--color-primary)]/10 py-2.5">
+      <div className={`relative overflow-hidden border-b py-2.5 ${isNight ? 'border-white/15 bg-[var(--color-primary)]/15' : 'border-[var(--color-border-subtle)] bg-[var(--color-primary)]/8'}`}>
         <div className="flex w-max animate-ticker whitespace-nowrap gap-8 px-4">
           {(wisdomPills.concat(wisdomPills)).map((pill, i) => (
-            <span key={i} className="text-sm text-[var(--color-text-secondary)] font-medium">
+            <span key={i} className={`text-sm font-medium ${isNight ? 'text-slate-200' : 'text-[var(--color-text-secondary)]'}`}>
               {pill}
             </span>
           ))}
@@ -103,24 +103,24 @@ export default function Home() {
         <div
           className="absolute inset-0 min-h-[200px]"
           style={{
-            background: 'linear-gradient(155deg, rgba(12,74,62,0.92) 0%, rgba(15,118,110,0.88) 40%, rgba(13,148,136,0.85) 70%, rgba(15,118,110,0.9) 100%)',
+            background: 'linear-gradient(155deg, rgba(12,74,62,0.82) 0%, rgba(15,118,110,0.78) 40%, rgba(13,148,136,0.75) 70%, rgba(15,118,110,0.8) 100%)',
           }}
         />
-        <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)' }} />
+          <div className="absolute inset-0 opacity-60" style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 20%, rgba(255,255,255,0.2) 0%, transparent 60%)' }} />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-8 left-[15%] w-2 h-2 rounded-full bg-white/30 animate-soft-pulse" style={{ animationDelay: '0s' }} />
           <div className="absolute top-16 right-[20%] w-1.5 h-1.5 rounded-full bg-white/25 animate-gentle-float" style={{ animationDelay: '0.5s' }} />
         </div>
-        <div className="relative z-20 flex flex-col justify-end px-6 pt-12 pb-10 min-h-[180px]">
+        <div className="home-hero-brand relative z-20 flex flex-col justify-end px-6 pt-12 pb-10 min-h-[180px]">
           <img src={logo} alt="XinBridge" className="w-14 h-14 rounded-full object-contain bg-white/10 backdrop-blur-sm mb-3 animate-gentle-scale-in shadow-lg" />
-          <h1 className="font-bold text-white tracking-tight animate-fade-in-up" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: 'clamp(1.5rem, 5vw, 2.25rem)', lineHeight: 1.2 }}>
+          <h1 className="font-bold text-white tracking-tight animate-fade-in-up no-underline" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", fontSize: 'clamp(1.5rem, 5vw, 2.25rem)', lineHeight: 1.2 }}>
             {greeting}. {String(home.title)}
           </h1>
-          <p className="text-white/95 text-sm font-medium mt-2 max-w-md leading-relaxed animate-fade-in-up stagger-1" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+          <p className="text-white/95 text-sm font-medium mt-2 max-w-md leading-relaxed animate-fade-in-up stagger-1 no-underline" style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}>
             {subtitle}
           </p>
         </div>
-        <div className="absolute -bottom-px left-0 right-0 w-full leading-[0]" style={{ color: isNight ? '#1a1f2e' : 'var(--color-bg)' }}>
+        <div className="absolute -bottom-px left-0 right-0 w-full leading-[0]" style={{ color: isNight ? '#252b3b' : 'var(--color-bg)' }}>
           <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="block w-full h-12">
             <path fill="currentColor" d="M0,50 C240,10 480,90 720,50 C960,10 1200,90 1440,50 L1440,100 L0,100 Z" />
           </svg>
@@ -130,7 +130,7 @@ export default function Home() {
       <div className="px-4 pt-2 space-y-4">
         {/* Wellness Circle - or Empty State */}
         {completed === 0 ? (
-          <div className="flex flex-col items-center py-10 px-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-[var(--color-border-subtle)] animate-fade-in">
+          <div className={`flex flex-col items-center py-10 px-4 rounded-2xl border animate-fade-in ${isNight ? 'bg-white/15 border-white/20' : 'bg-white/60 border-[var(--color-border-subtle)]'}`}>
             <BridgeQuietSVG />
             <p className="mt-6 text-center text-[var(--color-text)] font-medium leading-relaxed max-w-xs">
               {String(home.emptyState)}
@@ -138,7 +138,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-white p-5 card-interactive animate-fade-in-up">
-            <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-4">{String(home.wellnessCircle)}</p>
+            <p className="text-sm font-medium text-slate-600 mb-4">{String(home.wellnessCircle)}</p>
             <WellnessCircle
               moodDone={moodDone}
               symptomDone={symptomDone}
@@ -164,10 +164,10 @@ export default function Home() {
               <HeartHandshake className="h-5 w-5 text-[var(--color-mood-angry)]" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[var(--color-text)] text-[15px]">{String(home.sosTitle)}</p>
-              <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{String(home.sosSubtitle)}</p>
+              <p className="font-semibold text-slate-800 text-[15px]">{String(home.sosTitle)}</p>
+              <p className="text-sm text-slate-600 mt-0.5">{String(home.sosSubtitle)}</p>
             </div>
-            <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)]" strokeWidth={2} />
+            <ChevronRight className="h-5 w-5 shrink-0 text-slate-500" strokeWidth={2} />
           </div>
         </Link>
 
@@ -179,7 +179,7 @@ export default function Home() {
             <div className="relative z-10">
               {showDateInput ? (
                 <div>
-                  <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-2">{String(home.setNextTreatment)}</label>
+                  <label className="text-sm font-medium text-slate-600 block mb-2">{String(home.setNextTreatment)}</label>
                   <div className="flex gap-2">
                     <input type="date" value={nextTreatment} onChange={(e) => setNextTreatment(e.target.value)} className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]" />
                     <button onClick={saveNextTreatment} className="rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors">{String(t.save)}</button>
@@ -187,12 +187,12 @@ export default function Home() {
                 </div>
               ) : days !== null ? (
                 <button onClick={() => setShowDateInput(true)} className="w-full text-left">
-                  <p className="text-sm text-[var(--color-text-secondary)]">{String(home.nextTreatment)}</p>
+                  <p className="text-sm text-slate-600">{String(home.nextTreatment)}</p>
                   <p className="text-lg font-semibold text-[var(--color-primary)] mt-0.5">{daysText}</p>
                 </button>
               ) : (
                 <button onClick={() => setShowDateInput(true)} className="w-full text-left">
-                  <p className="text-sm text-[var(--color-text-secondary)]">{String(home.setNextTreatment)}</p>
+                  <p className="text-sm text-slate-600">{String(home.setNextTreatment)}</p>
                   <p className="text-[var(--color-primary)] font-medium mt-0.5 text-sm">{String(home.clickToSet)}</p>
                 </button>
               )}
@@ -204,6 +204,7 @@ export default function Home() {
         <nav className="space-y-3">
           {visibleMenuIds.map((id, i) => {
             const isHighlight = isMorning && (id === 'mood' || id === 'symptoms')
+            const MenuIcon = MenuIcons[id]
             return (
               <Link
                 key={id}
@@ -220,14 +221,20 @@ export default function Home() {
               >
                 <div className="relative flex items-center gap-4 p-4">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
-                    <ImgWithFallback src={menuImages[id] ?? images.natureGreen} alt="" className="h-full w-full object-cover" fallbackClassName="h-full w-full object-cover" />
+                    <ImgWithFallback
+                      src={menuImages[id] ?? images.natureGreen}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      fallbackClassName="h-full w-full"
+                      fallback={MenuIcon ? <MenuIcon className="w-7 h-7 text-[var(--color-primary)]/60" strokeWidth={1.8} /> : null}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-semibold text-[var(--color-text)] text-[15px]">{menu[id]?.title ?? ''}</h2>
-                    <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 truncate">{menu[id]?.subtitle ?? ''}</p>
+                    <h2 className="font-semibold text-slate-800 text-[15px]">{menu[id]?.title ?? ''}</h2>
+                    <p className="text-sm text-slate-600 mt-0.5 truncate">{menu[id]?.subtitle ?? ''}</p>
                   </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-[var(--color-text-muted)]" strokeWidth={2} />
+                  <ChevronRight className="h-5 w-5 shrink-0 text-slate-500" strokeWidth={2} />
                 </div>
               </Link>
             )
@@ -244,7 +251,7 @@ export default function Home() {
           </button>
         )}
 
-        <p className="pt-6 text-center text-xs text-[var(--color-text-muted)]">{String(home.footer)}</p>
+        <p className={`pt-6 text-center text-xs ${isNight ? 'text-slate-400' : 'text-[var(--color-text-muted)]'}`}>{String(home.footer)}</p>
       </div>
     </div>
   )
@@ -266,8 +273,8 @@ function WellnessCircle({ moodDone, symptomDone, breathingDone, progress, moodLa
         <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-primary)" strokeWidth="8" strokeDasharray={`${symptomLen} ${circ - symptomLen}`} strokeDashoffset={-moodLen} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
         <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-primary)" strokeWidth="8" strokeDasharray={`${breathingLen} ${circ - breathingLen}`} strokeDashoffset={-(moodLen + symptomLen)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s ease' }} />
       </svg>
-      <div className="text-sm text-[var(--color-text-secondary)]">
-        <p className="font-medium text-[var(--color-text)]">{Math.round(progress * 100)}%</p>
+      <div className="text-sm text-slate-600">
+        <p className="font-medium text-slate-800">{Math.round(progress * 100)}%</p>
         <p>{moodDone ? '✓' : '○'} {moodLabel}</p>
         <p>{symptomDone ? '✓' : '○'} {symptomLabel}</p>
         <p>{breathingDone ? '✓' : '○'} {breathingLabel}</p>

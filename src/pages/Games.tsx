@@ -76,8 +76,8 @@ export default function Games() {
   }, [selected])
 
   return (
-    <motion.div className="min-h-dvh bg-[#0a0a0c] flex flex-col overflow-hidden">
-      <header className="header-safe flex items-center justify-between gap-4 px-4 py-4 shrink-0 relative">
+    <motion.div className="min-h-dvh bg-[#0a0a0c] flex flex-col overflow-hidden pt-safe">
+      <header className="flex items-center justify-between gap-4 px-4 py-4 shrink-0 relative">
         <Link
           to={backTo}
           className="px-3 py-2 rounded-xl bg-white/10 text-white/90 text-xs font-medium hover:bg-white/15"

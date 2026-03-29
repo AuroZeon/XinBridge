@@ -11,6 +11,7 @@ import { useTranslation, useLocale } from '../i18n/context'
 import { images } from '../data/mediaAssets'
 import { ImgWithFallback } from '../components/ImgWithFallback'
 import { BodyMap, type BodyPart, type BodyRegionId } from '../components/BodyMap'
+import { Sun, SunDim, Moon, Smile, Meh, Frown, Sparkles } from 'lucide-react'
 
 export interface BodySymptoms {
   headache?: number
@@ -52,8 +53,6 @@ function getWellnessScore(log: SymptomLog): number {
   const appetiteNorm = 1 - log.appetite / 6
   return (painNorm + fatigueNorm + nauseaNorm + (1 - sleepNorm) + (1 - appetiteNorm)) / 5
 }
-
-const NAUSEA_EMOJIS = ['😊', '🙂', '😐', '😬', '😕', '😵‍💫', '🤢', '🤕', '😩', '🥴', '🤮']
 
 async function hapticTick() {
   try {
@@ -291,11 +290,10 @@ export default function SymptomTracker() {
             max={10}
           />
 
-          {/* Emoji Reaction Slider - Nausea */}
-          <ReactionSlider
+          {/* Nausea Slider */}
+          <NauseaPal
             value={currentLog.nausea}
             onChange={(v) => onReactionChange(v, false)}
-            emojis={NAUSEA_EMOJIS}
             label={String(sym.nausea)}
             max={6}
           />
@@ -357,7 +355,7 @@ export default function SymptomTracker() {
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="rounded-3xl p-8 bg-white shadow-2xl max-w-sm text-center border border-slate-200"
             >
-              <span className="text-5xl mb-4 block">✨</span>
+              <Sparkles className="w-16 h-16 mx-auto mb-4 text-amber-500" strokeWidth={2} />
               <p className="text-lg font-semibold text-slate-800 mb-2">{String(sym.saved)}</p>
               <p className="text-sm text-slate-600 leading-relaxed">{String(sym.dailyWinMessage)}</p>
             </motion.div>
@@ -456,13 +454,13 @@ function EnergySun({ value, onChange, label, max }: { value: number; onChange: (
             transition={{ duration: 0.4 }}
           >
             {face === 'sleepy' && (
-              <span className="text-2xl">😴</span>
+              <Moon className="w-10 h-10 text-amber-700/80" strokeWidth={1.5} />
             )}
             {face === 'neutral' && (
-              <span className="text-2xl">🙂</span>
+              <SunDim className="w-10 h-10 text-amber-600" strokeWidth={1.5} />
             )}
             {face === 'bright' && (
-              <span className="text-2xl">☀️</span>
+              <Sun className="w-10 h-10 text-amber-500" strokeWidth={2} />
             )}
           </motion.div>
         </div>
@@ -528,45 +526,37 @@ function PainPal({ value, onChange, label, max }: { value: number; onChange: (v:
   )
 }
 
-function ReactionSlider({
-  value,
-  onChange,
-  emojis,
-  label,
-  max,
-}: {
-  value: number
-  onChange: (v: number) => void
-  emojis: string[]
-  label: string
-  max: number
-}) {
-  const idx = Math.round((value / max) * (emojis.length - 1))
-  const emoji = emojis[idx] ?? emojis[0]
+function NauseaPal({ value, onChange, label, max }: { value: number; onChange: (v: number) => void; label: string; max: number }) {
+  const pct = value / max
+  const face = pct < 0.33 ? 'ok' : pct < 0.66 ? 'mild' : 'bad'
 
   return (
-    <div className="rounded-2xl p-5 bg-[var(--color-card)]/80 border border-[var(--color-border-subtle)]">
+    <motion.div
+      className="rounded-2xl p-5 bg-white/70 backdrop-blur-xl border border-white/40 shadow-lg"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
       <p className="text-sm text-[var(--color-text)] mb-3">{label}</p>
-      <div className="flex items-center gap-4">
-        <motion.span
-          key={emoji}
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-4xl w-14 text-center shrink-0"
-        >
-          {emoji}
-        </motion.span>
-        <input
-          type="range"
-          min={0}
-          max={max}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="flex-1 h-3 rounded-full appearance-none bg-[var(--color-border-subtle)] accent-[var(--color-primary)]"
-        />
-        <span className="text-sm font-medium text-[var(--color-primary)] w-8">{value}</span>
+      <div className="flex items-center gap-6">
+        <div className="relative w-20 h-20 shrink-0 flex items-center justify-center rounded-full bg-emerald-100/80">
+          {face === 'ok' && <Smile className="w-10 h-10 text-emerald-600" strokeWidth={1.5} />}
+          {face === 'mild' && <Meh className="w-10 h-10 text-amber-600" strokeWidth={1.5} />}
+          {face === 'bad' && <Frown className="w-10 h-10 text-rose-500" strokeWidth={1.5} />}
+        </div>
+        <div className="flex-1 space-y-1">
+          <input
+            type="range"
+            min={0}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full h-3 rounded-full appearance-none accent-emerald-500 bg-[var(--color-border-subtle)]"
+          />
+          <p className="text-xs text-[var(--color-text-secondary)] text-right">{value}/{max}</p>
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

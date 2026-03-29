@@ -131,7 +131,7 @@ export default function GameLightPaint({ locale, onExit }: GameLightPaintProps) 
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[#0a0a0c] pt-safe">
-      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
+      <div className="absolute top-safe left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
         <p className="text-sm text-white/60">
           {locale === 'zh' ? '在黑暗中画出光芒 · 约10秒渐隐' : 'Draw with light · fades ~10s'}
         </p>

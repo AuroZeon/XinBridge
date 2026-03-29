@@ -169,7 +169,7 @@ export default function GameConstellation({ locale, freeMode, reportProgress, on
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[#0a0a0c] pt-safe">
-      <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
+      <div className="absolute top-safe left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
         <div className="flex gap-2 items-center pointer-events-auto">
           <button onClick={init} className="px-3 py-2 rounded-xl bg-white/10 text-white/90 text-xs font-medium backdrop-blur-sm">
             {locale === 'zh' ? '重置' : 'Reset'}

@@ -1,73 +1,21 @@
 /**
- * Night Sanctuary Audio - Singleton controller
- * soundRef: single Howl instance. proceduralRef: Web Audio fallback.
- * Clean lifecycle: stop+unload before play, cleanup on unmount.
+ * Night Sanctuary Audio - Real-world sounds only. No programmed audio.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Howl } from 'howler'
+import { Howl, Howler } from 'howler'
 import type { Locale } from '../i18n/locale'
 import type { SoundTrack } from '../data/soundLibrary'
-import { SOUND_LIBRARY } from '../data/soundLibrary'
+import { SOUND_LIBRARY, resolveTrackUrls } from '../data/soundLibrary'
 import { getMeditationScript } from '../data/sleepContent'
 
-export type HarmonyPreset = 'deepSleep' | 'calmMind' | 'pureNature'
+export type HarmonyPreset = 'deepSleep' | 'calmMind' | 'pureNature' | 'forestWalk' | 'riverFlow'
 
 const PRESETS: Record<HarmonyPreset, { foundationId: string; environmentId: string; voiceId: string }> = {
-  deepSleep: { foundationId: 'binaural-delta', environmentId: 'rain-windowsill', voiceId: '' },
-  calmMind: { foundationId: 'binaural-delta', environmentId: 'ocean-tide', voiceId: '' },
+  deepSleep: { foundationId: '', environmentId: 'rain-windowsill', voiceId: '' },
+  calmMind: { foundationId: '', environmentId: 'ocean-tide', voiceId: '' },
   pureNature: { foundationId: '', environmentId: 'ocean-tide', voiceId: '' },
-}
-
-function createWhiteNoise(): { gain: GainNode; stop: () => void } | null {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-    const bufferSize = ctx.sampleRate * 2
-    const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate)
-    const dataL = buffer.getChannelData(0)
-    const dataR = buffer.getChannelData(1)
-    for (let i = 0; i < bufferSize; i++) {
-      dataL[i] = (Math.random() * 2 - 1) * 0.3
-      dataR[i] = (Math.random() * 2 - 1) * 0.3
-    }
-    const source = ctx.createBufferSource()
-    source.buffer = buffer
-    source.loop = true
-    const filter = ctx.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 4000
-    const gain = ctx.createGain()
-    gain.gain.value = 0.4
-    source.connect(filter)
-    filter.connect(gain)
-    gain.connect(ctx.destination)
-    source.start(0)
-    return { gain, stop: () => { source.stop(); ctx.close() } }
-  } catch {
-    return null
-  }
-}
-
-function createBinauralDelta(): { gain: GainNode; stop: () => void } | null {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-    const gain = ctx.createGain()
-    gain.gain.value = 0.3
-    gain.connect(ctx.destination)
-    const left = ctx.createOscillator()
-    const right = ctx.createOscillator()
-    left.type = right.type = 'sine'
-    left.frequency.value = 200
-    right.frequency.value = 201.5
-    const merger = ctx.createChannelMerger(2)
-    left.connect(merger, 0, 0)
-    right.connect(merger, 0, 1)
-    merger.connect(gain)
-    left.start(0)
-    right.start(0)
-    return { gain, stop: () => { left.stop(); right.stop(); ctx.close() } }
-  } catch {
-    return null
-  }
+  forestWalk: { foundationId: '', environmentId: 'forest-night', voiceId: '' },
+  riverFlow: { foundationId: '', environmentId: 'stream', voiceId: '' },
 }
 
 function speakPhrase(text: string, lang: string, voice: SpeechSynthesisVoice | null): Promise<void> {
@@ -96,90 +44,75 @@ function findTrack(id: string): SoundTrack | null {
   return null
 }
 
+function getTrackSrc(track: SoundTrack): string[] {
+  const urls = resolveTrackUrls(track)
+  if (urls.length) return urls
+  if (track.url?.trim()) return [track.url]
+  return []
+}
+
 export function useAudioPlayer(locale: Locale) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [activeTrack, setActiveTrack] = useState<{ id: string; title: string } | null>(null)
   const [activePreset, setActivePreset] = useState<HarmonyPreset | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [addFeedback, setAddFeedback] = useState<string | null>(null)
+  const [mixerTracks, setMixerTracks] = useState<SoundTrack[]>([])
 
-  const soundRef = useRef<Howl | null>(null)
-  const proceduralRef = useRef<{ gain: GainNode; stop: () => void } | null>(null)
+  const soundsRef = useRef<Howl[]>([])
+  const mixerTracksRef = useRef<SoundTrack[]>([])
   const ttsCancelRef = useRef(false)
   const voicesRef = useRef<SpeechSynthesisVoice[]>([])
+  mixerTracksRef.current = mixerTracks
 
   const ensureClean = useCallback(() => {
-    if (soundRef.current) {
-      soundRef.current.stop()
-      soundRef.current.unload()
-      soundRef.current = null
+    for (const h of soundsRef.current) {
+      try {
+        h.stop()
+        h.unload()
+      } catch {
+        /* ignore */
+      }
     }
-    proceduralRef.current?.stop()
-    proceduralRef.current = null
+    soundsRef.current = []
     ttsCancelRef.current = true
     window.speechSynthesis?.cancel()
   }, [])
 
   const playUrlTrack = useCallback(
     (track: SoundTrack, volume = 0.7, skipClean = false): boolean => {
-      const url = track.url?.trim()
-      if (!url) {
-        console.warn('[Sanctuary] Track missing URL:', track.id, '→ fallback to white noise')
-        const proc = createWhiteNoise()
-        if (!proc) return false
-        if (!skipClean) ensureClean()
-        proceduralRef.current = proc
-        setActiveTrack({ id: track.id, title: locale === 'zh' ? track.titleZh : track.titleEn })
-        setIsPlaying(true)
-        return true
+      const urls = getTrackSrc(track)
+      if (urls.length === 0) {
+        console.warn('[Sanctuary] Track missing URL:', track.id)
+        return false
       }
 
       if (!skipClean) ensureClean()
       setIsLoading(true)
       const howl = new Howl({
-        src: [url],
+        src: urls,
+        html5: true,
         loop: true,
         volume: volume,
+        preload: true,
         onloaderror: () => {
           setIsLoading(false)
-          console.warn('[Sanctuary] Load failed:', url, '→ fallback to white noise')
-          const proc = createWhiteNoise()
-          if (proc) {
-            soundRef.current?.stop()
-            soundRef.current?.unload()
-            soundRef.current = null
-            proceduralRef.current = proc
-            setActiveTrack({ id: track.id, title: locale === 'zh' ? track.titleZh : track.titleEn })
-            setIsPlaying(true)
-          }
+          const idx = soundsRef.current.indexOf(howl)
+          if (idx >= 0) soundsRef.current.splice(idx, 1)
+          console.warn('[Sanctuary] Load failed:', urls[0])
         },
         onload: () => {
           setIsLoading(false)
+          if (!soundsRef.current.includes(howl)) return
           howl.play()
-          soundRef.current = howl
           setActiveTrack({ id: track.id, title: locale === 'zh' ? track.titleZh : track.titleEn })
           setIsPlaying(true)
         },
       })
+      soundsRef.current.push(howl)
       return true
     },
     [locale, ensureClean]
-  )
-
-  const playProcedural = useCallback(
-    (id: string, title: string, skipClean = false): boolean => {
-      if (id === 'binaural-delta') {
-        const proc = createBinauralDelta()
-        if (!proc) return false
-        if (!skipClean) ensureClean()
-        proceduralRef.current = proc
-        setActiveTrack({ id, title })
-        setIsPlaying(true)
-        return true
-      }
-      return false
-    },
-    [ensureClean]
   )
 
   const playVoice = useCallback(
@@ -209,107 +142,117 @@ export function useAudioPlayer(locale: Locale) {
     setActivePreset(null)
     setActiveTrack(null)
 
-    const h = soundRef.current
-    if (h && typeof h.fade === 'function') {
-      const cur = h.volume()
-      h.fade(typeof cur === 'number' ? cur : 0, 0, 500)
-      setTimeout(() => {
-        h.stop()
-        h.unload()
-        soundRef.current = null
-      }, 520)
-    } else {
-      soundRef.current?.stop()
-      soundRef.current?.unload()
-      soundRef.current = null
-    }
-
-    const proc = proceduralRef.current
-    if (proc?.gain?.gain) {
-      proc.gain.gain.cancelScheduledValues(proc.gain.context.currentTime)
-      proc.gain.gain.setTargetAtTime(0, proc.gain.context.currentTime, 0.15)
-      setTimeout(() => {
-        proc.stop()
-        proceduralRef.current = null
-      }, 520)
-    } else {
-      proceduralRef.current?.stop()
-      proceduralRef.current = null
-    }
-
     ttsCancelRef.current = true
     window.speechSynthesis?.cancel()
+
+    try {
+      Howler.stop()
+      Howler.unload()
+    } catch {
+      /* ignore */
+    }
+
+    for (const h of soundsRef.current) {
+      try {
+        h.stop()
+        h.unload()
+      } catch {
+        /* ignore */
+      }
+    }
+    soundsRef.current = []
+
   }, [])
 
   const handleAdd = useCallback(
     (track: SoundTrack) => {
-      const title = locale === 'zh' ? track.titleZh : track.titleEn
-      if (!track.url?.trim()) {
-        console.warn('[Sanctuary] Add: track missing URL:', track.id, '→ white noise fallback')
-        const proc = createWhiteNoise()
-        if (!proc) return
-        ensureClean()
-        proceduralRef.current = proc
-        setActiveTrack({ id: track.id, title })
-        setIsPlaying(true)
-      } else {
-        ensureClean()
-        setIsLoading(true)
-        const howl = new Howl({
-          src: [track.url],
-          loop: true,
-          volume: 0.7,
-          onloaderror: () => {
-            setIsLoading(false)
-            console.warn('[Sanctuary] Add failed:', track.url, '→ white noise')
-            const proc = createWhiteNoise()
-            if (proc) {
-              proceduralRef.current = proc
-              setActiveTrack({ id: track.id, title })
-              setIsPlaying(true)
-            }
-          },
-          onload: () => {
-            setIsLoading(false)
-            howl.play()
-            soundRef.current = howl
-            setActiveTrack({ id: track.id, title })
-            setIsPlaying(true)
-          },
-        })
-      }
-      setAddFeedback(title)
+      setMixerTracks((prev) => [...prev, track])
+      setAddFeedback(locale === 'zh' ? track.titleZh : track.titleEn)
       setTimeout(() => setAddFeedback(null), 1500)
     },
-    [locale, ensureClean]
+    [locale]
   )
+
+  const handleRemove = useCallback((index: number) => {
+    setMixerTracks((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const handlePlayMix = useCallback(() => {
+    const tracks = mixerTracksRef.current
+    if (tracks.length === 0) return
+
+    ensureClean()
+    setIsLoading(true)
+    setActivePreset(null)
+    const primaryTitle = locale === 'zh' ? tracks[0].titleZh : tracks[0].titleEn
+    setActiveTrack({ id: tracks[0].id, title: primaryTitle })
+
+    let loadedCount = 0
+    let erroredCount = 0
+    const total = tracks.length
+    const maybeStart = () => {
+      if (loadedCount + erroredCount >= total) {
+        setIsLoading(false)
+        if (soundsRef.current.length > 0) setIsPlaying(true)
+        else setActiveTrack(null)
+      }
+    }
+
+    const volumePerTrack = Math.min(0.7, 0.6 / Math.max(1, Math.sqrt(tracks.filter((t) => getTrackSrc(t).length > 0).length)))
+
+    for (const track of tracks) {
+      const urls = getTrackSrc(track)
+      if (urls.length === 0) {
+        console.warn('[Sanctuary] Track missing URL, skipping:', track.id)
+        erroredCount++
+        maybeStart()
+        continue
+      }
+
+      const howl = new Howl({
+        src: urls,
+        html5: true,
+        loop: true,
+        volume: volumePerTrack,
+        preload: true,
+        onloaderror: () => {
+          console.error('[Sanctuary] Load failed:', track.id, urls[0])
+          erroredCount++
+          const idx = soundsRef.current.indexOf(howl)
+          if (idx >= 0) soundsRef.current.splice(idx, 1)
+          maybeStart()
+        },
+        onload: () => {
+          if (!soundsRef.current.includes(howl)) return
+          howl.play()
+          loadedCount++
+          maybeStart()
+        },
+      })
+      soundsRef.current.push(howl)
+    }
+  }, [locale, ensureClean])
 
   const applyPreset = useCallback(
     async (preset: HarmonyPreset) => {
       const cfg = PRESETS[preset]
       ensureClean()
       setActivePreset(preset)
-      setIsLoading(true)
+      setIsLoading(false)
 
       const envTrack = findTrack(cfg.environmentId)
       const voiceTrack = cfg.voiceId ? findTrack(cfg.voiceId) : null
 
-      if (cfg.foundationId === 'binaural-delta') {
-        playProcedural('binaural-delta', locale === 'zh' ? '双耳波' : 'Binaural', true)
-      }
       if (envTrack) {
         playUrlTrack(envTrack, 0.6, true)
       } else if (!cfg.foundationId && !voiceTrack) {
-        setIsLoading(false)
+        /* noop */
       }
       if (voiceTrack?.scriptId) {
         await playVoice(voiceTrack)
-        setIsLoading(false)
-      } else if (envTrack || cfg.foundationId) {
-        setIsLoading(false)
       }
     },
-    [locale, ensureClean, playUrlTrack, playProcedural, playVoice]
+    [locale, ensureClean, playUrlTrack, playVoice]
   )
 
   useEffect(() => {
@@ -343,11 +286,15 @@ export function useAudioPlayer(locale: Locale) {
   }, [isPlaying, activeTrack, handleStop])
 
   useEffect(() => () => {
-    soundRef.current?.stop()
-    soundRef.current?.unload()
-    soundRef.current = null
-    proceduralRef.current?.stop()
-    proceduralRef.current = null
+    for (const h of soundsRef.current) {
+      try {
+        h.stop()
+        h.unload()
+      } catch {
+        /* ignore */
+      }
+    }
+    soundsRef.current = []
     window.speechSynthesis?.cancel()
   }, [])
 
@@ -357,8 +304,11 @@ export function useAudioPlayer(locale: Locale) {
     activePreset,
     isLoading,
     addFeedback,
+    mixerTracks,
     handleStop,
     handleAdd,
+    handleRemove,
+    handlePlayMix,
     applyPreset,
     presets: PRESETS,
     tracks: SOUND_LIBRARY,

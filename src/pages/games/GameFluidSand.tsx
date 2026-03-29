@@ -265,26 +265,25 @@ export default function GameFluidSand({ locale, freeMode, reportProgress, onMiss
         ctx.save()
         ctx.globalAlpha = foundRef.current ? 1 : 0.4 + 0.2 * Math.sin(Date.now() / 600)
         ctx.translate(t.x, t.y)
+        const s = TREASURE_SIZE / 2
         ctx.strokeStyle = '#D4AF37'
         ctx.lineWidth = 2
-        ctx.beginPath()
-        for (let i = 0; i < 8; i++) {
-          const a = (i / 8) * Math.PI * 2 + Date.now() / 2000
-          const r = TREASURE_SIZE / 2
-          const x = Math.cos(a) * r
-          const y = Math.sin(a) * r
-          if (i === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
-        }
-        ctx.closePath()
-        ctx.stroke()
-        ctx.fillStyle = 'rgba(212,175,55,0.2)'
-        ctx.fill()
-        ctx.font = '32px serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
         ctx.fillStyle = 'rgba(255,215,0,0.95)'
-        ctx.fillText('🌸', 0, 0)
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 + Date.now() / 2000
+          const cx = Math.cos(a) * s * 0.5
+          const cy = Math.sin(a) * s * 0.5
+          ctx.beginPath()
+          ctx.ellipse(cx, cy, s * 0.4, s * 0.25, a, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.stroke()
+        }
+        ctx.fillStyle = '#D4AF37'
+        ctx.beginPath()
+        ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(255,215,0,0.8)'
+        ctx.stroke()
         ctx.restore()
       }
 
@@ -354,7 +353,7 @@ export default function GameFluidSand({ locale, freeMode, reportProgress, onMiss
         />
       </div>
 
-      <div className="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
+      <div className="absolute top-safe left-4 right-4 z-10 flex justify-between items-start pointer-events-none">
         <div className="flex gap-2 pointer-events-auto">
           <button
             type="button"

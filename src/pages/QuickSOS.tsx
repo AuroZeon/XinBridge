@@ -144,12 +144,12 @@ export default function QuickSOS() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
               <div className="mx-6 p-6 rounded-2xl bg-white max-w-sm">
                 <p className="text-[var(--color-text)] font-medium mb-2">
-                  {locale === 'zh' ? '正在联系家人…' : 'Contacting family…'}
+                  {locale === 'zh' ? '准备打开联系方式' : 'Preparing contact options'}
                 </p>
                 <p className="text-[var(--color-text-secondary)] text-sm mb-4">
                   {locale === 'zh'
-                    ? `${proximityCountdown} 秒后自动发送`
-                    : `Sending in ${proximityCountdown} seconds`}
+                    ? `${proximityCountdown} 秒后将打开（由您选择电话或短信等，不会自动发送）`
+                    : `Opens in ${proximityCountdown} s — you choose call or text; nothing is sent automatically.`}
                 </p>
                 <button
                   onClick={cancelProximity}

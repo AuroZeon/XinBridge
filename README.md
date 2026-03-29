@@ -3,7 +3,7 @@
 **不让任何癌症患者在夜晚感到孤单**  
 *No cancer patient should feel alone at night.*
 
-心桥是一款为癌症患者设计的 AI 情感陪伴应用，帮助患者表达情绪、减轻焦虑、追踪心情，并与家人保持沟通。具备情境感知与主动关怀逻辑。
+心桥是一款为癌症患者设计的 AI 情感陪伴应用，帮助患者表达情绪、减轻焦虑、追踪心情，并与家人保持沟通。具备情境感知与主动关怀逻辑。**心语对话支持本机保存**：可新建对话、打开以往对话并接着聊（云端回复仍需您同意且联网时使用）。
 
 ## 技术栈
 
@@ -13,7 +13,8 @@
 - **Framer Motion**（动画与手势）
 - **Swiper**（Cover Flow 滑动，用于 Night Sanctuary）
 - **Matter.js**（禅趣游戏物理引擎）
-- **Howler**（音频播放）
+- **Howler**（音频播放）  
+  - Night Sanctuary 自然音效：Orange Free Sounds（CC BY-NC 4.0）— rain, ocean, forest, stream
 - **Lucide React**（图标）
 - **React Router**
 
@@ -22,7 +23,7 @@
 ### 核心功能
 
 1. **情绪签到** – 记录此刻感受，可选记录疼痛程度（复诊可参考）  
-2. **AI 心语陪伴** – 本地 LLM（WebLLM / Transformers.js）无需服务端；**Gentle Companion** 人格，多用比喻，避免临床腔  
+2. **AI 心语陪伴** – 通过服务端调用 **OpenAI（ChatGPT API）** 或已配置的兼容云端接口；**Gentle Companion** 人格，多用比喻，避免临床腔（需联网与用户同意）；**会话本机持久化**（新对话 / 以往对话 / 续聊，省重复上下文）  
 3. **症状记录** – 每日疲惫、恶心、疼痛、睡眠、食欲；**智能关联**：连续 3 天高痛时自动建议为医生准备问题  
 4. **想问医生的话** – 提前记下问题，复诊不忘记  
 5. **治疗倒计时** – 设置下次治疗/复查日期，心中有数  
@@ -142,72 +143,42 @@ XinBridge/
 │   │   ├── zenTone.ts
 │   │   └── celebration.ts
 │   ├── contexts/
-│   │   └── WebLLMContext.tsx
+│   │   └── ChatAIContext.tsx
 │   └── types/
 └── public/
 ```
 
-## 本地 AI 说明
+## 心语陪伴（云端 AI）
 
-心语陪伴在浏览器/手机内运行本地 AI，无需服务端：
-- **桌面浏览器**：WebLLM + Llama-3.2-1B（约 200MB，需 WebGPU）
-- **移动端（iOS/Android）**：Transformers.js + Qwen2.5-0.5B-Instruct（约 50MB，WASM，无需 WebGPU）
-- **Gentle Companion 人格**：多用比喻（如「康复像潮水，有起有落」），避免临床术语与机械化表述
-- **Night Companion 模式**：从夜晚陪伴进入聊天时，AI 切换为安静深夜陪伴，侧重身体 grounding
-- Qwen-0.5B 为手机优化，新机型（Pixel 8 / iPhone 15 Pro）可达 ~40 tokens/s
-- 推荐：8–12 GB RAM，Snapdragon 8+ / Apple A17；4–8 GB 手机也可运行，速度较慢
-- 不支持时自动使用预设回复
+用户首次使用 AI 前需在应用内阅读并同意数据发送说明（满足 App Store 5.1.1 / 5.1.2）。
 
-## 心语陪伴（Chatbot）工作原理
+### 调用方式（二选一）
 
-心语陪伴是心桥的核心 AI 对话模块，全程本地运行，不依赖云端 API。以下说明其架构、推理流程与安全边界。
+1. **Capacitor 移动应用（无自建后端）**：构建前在 `.env` 中配置 **`VITE_OPENAI_API_KEY`**（及可选 `VITE_OPENAI_BASE_URL` / `VITE_OPENAI_MODEL`）。应用通过 **`CapacitorHttp`** 直连 OpenAI 兼容的 `/v1/chat/completions`（原生请求，**绕过 WebView CORS**）。密钥会打进前端包，请务必使用**限额/受限密钥**并在控制台监控用量。
+2. **Web 或带 Vercel 等后端**：未设置上述 `VITE_*` 客户端密钥时，`src/lib/chatApi.ts` 会 `POST` `{VITE_API_URL}/api/chat`，由 `api/chat.js` / Vite 中间件使用 **`OPENAI_API_KEY`**（仅服务端，不写入包内）。
 
-### 架构与平台选择
+### 路由与模型（直连客户端 `VITE_*`）
 
-中心逻辑在 `src/contexts/WebLLMContext.tsx`，根据运行环境自动选择推理引擎：
+| 条件 | 提供方 | 环境变量 |
+|------|--------|----------|
+| 界面语言为中文且已配置 | 中国大陆可访问的 OpenAI 兼容接口（默认示例：DeepSeek） | `VITE_CHINA_AI_API_KEY`、`VITE_CHINA_AI_BASE_URL`、`VITE_CHINA_AI_MODEL` |
+| 其他情况 | OpenAI ChatGPT API | `VITE_OPENAI_API_KEY`、`VITE_OPENAI_MODEL`（默认 `gpt-4o-mini`） |
 
-| 环境 | 引擎 | 模型 |
-|------|------|------|
-| 桌面浏览器 | WebLLM | Llama-3.2-1B-Instruct-q4f16_1-MLC |
-| 移动端原生（Capacitor iOS/Android） | Transformers.js（主线程） | Qwen2.5-0.5B-Instruct |
-| 移动端浏览器 | Transformers.js（Worker） | Qwen2.5-0.5B-Instruct |
+### 路由与模型（服务端代理 `OPENAI_*` / `CHINA_*`）
 
-- **桌面**：WebGPU 加速，支持流式输出；Capacitor WebView 中 Worker 不稳定，故移动原生改用主线程。
-- **移动浏览器**：优先使用 Worker，失败时回退到主线程。
+| 条件 | 环境变量 |
+|------|----------|
+| 中文 + 境内接口 | `CHINA_AI_API_KEY`、`CHINA_AI_BASE_URL`、`CHINA_AI_MODEL` |
+| 默认 | `OPENAI_API_KEY`、`OPENAI_MODEL` |
 
-### 系统提示词（人格设定）
+- **本地开发（`npm run dev`）**：未配置 `VITE_OPENAI_*` 时，Vite 同进程处理 `POST /api/chat`，从 **`.env` / `.env.local`** 读取 `OPENAI_API_KEY` 等（勿用 `VITE_` 前缀存仅服务端密钥）。
+- **Capacitor 仅走服务端代理时**：需部署带 `api/chat` 的站点，并设置 **`VITE_API_URL`** 为该站点根地址。
+- 人格与系统提示词：`src/lib/empathyPrompt.ts`；深夜模式：`ChatAIContext` 中的 Night Companion 覆盖（`fromSleep`）。
+- 危机 / SOS / 越界内容仍走 `src/data/aiResponses.ts` 预设，不发往第三方。
 
-- **默认人格**（`src/lib/empathyPrompt.ts`）：心桥 AI， empathetic、温和；多用比喻，避免医学术语；不提供医疗建议；对危机信号敏感。
-- **Night Companion**：从「夜晚陪伴」页面进入聊天时（`fromSleep` 为真），自动切换为夜间陪伴模式：短句、小写、侧重身体 grounding，语气安静。
+### 隐私政策 URL
 
-### 消息处理流程（Scope）
-
-发送消息时，先做简单范围判断（`getScopeResult`）：
-
-1. **crisis**（危机）—— 检测到明显 distress / 自杀相关表述 → 使用预设 `crisisSupport` 回复，强调倾听与专业求助渠道，不走 LLM。
-2. **policy**（边界）—— 明显超出支持范围（如政治、暴力等）→ 使用 `unsafe` 预设，温和说明边界，引导回到心桥可陪伴的话题。
-3. **allow** —— 正常范围，交给 LLM 生成回复。
-
-同时，若用户输入包含 SOS 关键词（如「救命」「放弃」），会触发 `sos` 预设，优先提供 5-4-3-2-1 grounding 等即时支持。
-
-### 预设回复与兜底
-
-当 LLM 未加载、出错或返回空内容时，使用 `src/data/aiResponses.ts` 中的预设回复：
-
-- 关键词匹配（如：害怕、治疗、孤单、疲惫、恶心、疼痛、睡眠、愤怒、sos）→ 返回对应预设。
-- 无匹配 → 使用默认通用安慰回复。
-- Crisis / policy 场景直接使用 `crisisSupport` 或 `unsafe`。
-
-### 推理参数
-
-- **WebLLM**：`max_tokens: 600`，`temperature: 0.85`，`repetition_penalty: 1.12`，`frequency_penalty: 0.3`。
-- **Transformers.js**：`max_new_tokens: 400`，非流式。
-- 输出会经 `dedupeParagraphs()` 去除重复段落。
-
-### 扩展能力
-
-- `options?.systemPromptOverride`：可覆盖默认系统提示词（如 Night Companion）。
-- `options?.contextAppendix`：可追加额外上下文（当前默认关闭，以加速首 token 生成）。
+上架时请提供可公网访问的隐私政策链接。仓库内含 `public/privacy.html`，部署后与 `VITE_PRIVACY_POLICY_URL` 或同域 `privacy.html` 一致即可。
 
 ## 希望图书馆刷新功能
 
@@ -238,9 +209,169 @@ XinBridge/
 
 任务系统（Nightly Quest HUD）、星火收集、任务完成 confetti、触觉与音效反馈；希望画廊展示已解锁内容。
 
+## 上架 App Store 与 Google Play
+
+以下为 XinBridge 上架苹果 App Store 与 Google Play 商店的详细步骤。
+
+### 前提条件
+
+| 项目 | App Store | Google Play |
+|------|-----------|-------------|
+| 账号 | [Apple Developer Program](https://developer.apple.com/programs/)（$99/年） | [Google Play Console](https://play.google.com/console)（$25 一次性） |
+| 设备 | macOS + Xcode 15+ | macOS / Windows / Linux |
+| 本机环境 | Node.js 18+，已完成 `npm run cap:init` | 同上 |
+
+---
+
+### 一、上架 Apple App Store
+
+#### 1. 构建与同步
+
+```bash
+# 构建 Web 资源
+npm run build
+
+# 同步到 iOS 工程
+npx cap sync ios
+
+# 在 Xcode 中打开
+npx cap open ios
+```
+
+#### 2. 在 Xcode 中配置
+
+1. **选择目标设备**：顶部设备选择器选 **Any iOS Device (arm64)**（勿选模拟器）。
+2. **签名与团队**：
+   - 点击左侧项目 `App` → **Signing & Capabilities**
+   - 勾选 **Automatically manage signing**
+   - 选择你的 **Team**（需已加入 Apple Developer Program）
+3. **Bundle ID**：确保与 `capacitor.config.ts` 中的 `appId` 一致（如 `com.xinbridge.app`），且已在 [App Store Connect](https://appstoreconnect.apple.com) 中创建对应应用。
+4. **版本号**：
+   - **Version**：用户可见版本，如 `1.0.0`
+   - **Build**：每次上传需递增，如 `1`、`2`、`3`…
+5. **图标与启动图**：使用 `@capacitor/assets` 生成，或手动在 `ios/App/App/Assets.xcassets` 中替换。
+
+#### 3. 生成归档并上传
+
+1. 菜单栏选择 **Product → Archive**。
+2. 归档完成后，在 **Organizer** 窗口中选择刚创建的归档。
+3. 点击 **Distribute App**。
+4. 选择 **App Store Connect** → **Upload**。
+5. 按提示选择 **Automatically manage signing**，然后 **Next** 直至上传完成。
+
+#### 4. 在 App Store Connect 中配置
+
+1. 登录 [App Store Connect](https://appstoreconnect.apple.com)。
+2. 选择对应 App → **App Store** 标签。
+3. 填写必填信息：
+   - **App 信息**：名称、副标题、类别、年龄分级、版权等
+   - **定价与销售范围**：免费/付费、可售国家或地区
+   - **App 隐私**：隐私政策 URL、数据收集说明
+4. **截图**：为 6.7"、6.5"、5.5" 等尺寸上传截图，可参考 `docs/APP_STORE_PREVIEWS.md`。
+5. **版本信息**：描述、关键词、宣传文本、技术支持 URL。
+6. 在 **TestFlight** 验证通过后，点击 **提交以供审核**。
+
+#### 5. 常见驳回与注意事项
+
+- **Guideline 4.2**：避免被判定为纯网页壳，项目已使用 Capacitor 原生插件（Haptics、Motion 等）。
+- **隐私声明**：在 `ios/App/App/Info.plist` 中添加所需用途说明（如相机、麦克风等，按实际使用添加）。
+- **内容加载**：Web 资源已打包进 App，不依赖外部 URL。
+
+---
+
+### 二、上架 Google Play
+
+#### 1. 生成签名密钥（首次）
+
+```bash
+keytool -genkey -v -keystore xinbridge-release.keystore \
+  -alias xinbridge -keyalg RSA -keysize 2048 -validity 10000
+```
+
+按提示输入密钥库密码、姓名、组织等信息。妥善保存 `xinbridge-release.keystore` 和密码。
+
+#### 2. 配置 Gradle 签名
+
+将生成的 `xinbridge-release.keystore` 放入 `android/app/` 目录（或安全位置），并在 `android/app/build.gradle` 的 `android` 块中添加：
+
+```gradle
+android {
+    ...
+    signingConfigs {
+        release {
+            storeFile file("xinbridge-release.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "你的密钥库密码"
+            keyAlias "xinbridge"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "你的密钥密码"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+```
+
+> 建议将 `xinbridge-release.keystore` 加入 `.gitignore`，密码使用环境变量。
+
+#### 3. 构建 AAB
+
+```bash
+# 构建 Web 资源
+npm run build
+
+# 同步到 Android 工程
+npx cap sync android
+
+# 构建发布版 AAB（Google Play 要求 AAB，不再接受 APK）
+cd android && ./gradlew bundleRelease
+```
+
+生成的 AAB 位于：`android/app/build/outputs/bundle/release/app-release.aab`。
+
+#### 4. 在 Google Play Console 中配置
+
+1. 登录 [Google Play Console](https://play.google.com/console)。
+2. 创建应用（若尚未创建），填写应用名称、默认语言等。
+3. **设置 → 应用签名**：首次上传时可按提示使用 Google 管理签名，或上传自己的签名密钥。
+4. **发布 → 生产环境 / 测试轨道** → **创建新版本**：
+   - 上传 `app-release.aab`
+   - 填写 **版本说明**（本次更新内容）
+5. **商店 listing**：
+   - 简短描述（80 字内）、完整描述（4000 字内）
+   - 截图（手机、7 寸平板、10 寸平板等）
+   - 应用图标（512×512）、功能图（1024×500）
+   - 完整元数据见 `docs/GOOGLE_PLAY_LISTING.md`
+6. **内容分级**：完成问卷获取分级。
+7. **应用内容**：隐私政策、数据安全表单、广告声明（若适用）。
+8. 所有必填项完成后，提交审核。
+
+#### 5. 常见问题
+
+- **AAB 要求**：自 2021 年 8 月起，新应用必须使用 AAB，不再接受 APK。
+- **64 位支持**：Capacitor 默认已包含 ARM64，一般无需额外配置。
+- **权限**：在 `android/app/src/main/AndroidManifest.xml` 中仅声明实际使用的权限。
+
+---
+
+### 三、通用准备清单
+
+| 项目 | 说明 |
+|------|------|
+| 应用图标 | 1024×1024（iOS）、512×512（Play），可用 `npm run cap:icons` 生成 |
+| 启动图 | 按各平台尺寸生成 |
+| 截图 | 参考 `docs/APP_STORE_PREVIEWS.md` 准备文案与截图 |
+| 隐私政策 URL | 必须可公网访问的 URL |
+| 支持 / 联系方式 | 用于商店展示和用户反馈 |
+
+---
+
 ## 后续扩展
 
-- 接入 OpenAI/Claude API 作为云端备选  
+- 可选接入其他云端模型（如 Claude API）作为备选路由  
 - 集成推送服务（如 Firebase）实现家人通知  
 - 导出症状记录 PDF 供复诊使用  
 - 云端声景（真人冥想、更多自然声）可选  

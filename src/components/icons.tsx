@@ -10,6 +10,7 @@ import {
   Wind,
   Users,
   BookOpen,
+  Gamepad2,
   HeartHandshake,
   CheckCircle2,
   ChevronRight,
@@ -28,6 +29,7 @@ export const MenuIcons: Record<string, LucideIcon> = {
   sleep: Moon,
   caregiver: Users,
   hope: BookOpen,
+  games: Gamepad2,
 }
 
 export const MoodIcons: Record<string, LucideIcon> = {

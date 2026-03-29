@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { ScrollToTop } from './components/ScrollToTop'
 import Home from './pages/Home'
 import MoodCheckIn from './pages/MoodCheckIn'
-import { WebLLMProvider } from './contexts/WebLLMContext'
+import { ChatAIProvider } from './contexts/ChatAIContext'
 import { MotionCalmProvider } from './contexts/MotionCalmContext'
 import { AmbientDarkProvider } from './contexts/AmbientDarkContext'
 import Chat from './pages/Chat'
@@ -25,7 +25,7 @@ function App() {
           <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/mood" element={<MoodCheckIn />} />
-        <Route path="/chat" element={<WebLLMProvider><Chat /></WebLLMProvider>} />
+        <Route path="/chat" element={<ChatAIProvider><Chat /></ChatAIProvider>} />
         <Route path="/breathing/cool" element={<Breathing mode="coolDown" />} />
         <Route path="/breathing" element={<Breathing />} />
         <Route path="/caregiver" element={<Caregiver />} />

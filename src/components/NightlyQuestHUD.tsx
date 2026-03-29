@@ -26,7 +26,7 @@ export default function NightlyQuestHUD({
 }) {
   return (
     <motion.div
-      className="absolute top-0 left-0 right-0 z-20 px-3 py-2 bg-black/60 backdrop-blur-md border-b border-white/10"
+      className="absolute top-safe left-0 right-0 z-20 px-3 py-2 bg-black/60 backdrop-blur-md border-b border-white/10"
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}

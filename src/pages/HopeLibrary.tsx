@@ -5,7 +5,7 @@ import { getHopeStories, getStoryCategories, getCancerTypes } from '../data/hope
 import type { HopeStory } from '../data/hopeStories'
 import { useTranslation, useLocale } from '../i18n/context'
 import { useGlobalPulse } from '../hooks/useGlobalPulse'
-import { RefreshCw, Globe } from '../components/icons'
+import { RefreshCw } from '../components/icons'
 import { images, logo } from '../data/mediaAssets'
 import { ImgWithFallback } from '../components/ImgWithFallback'
 
@@ -78,11 +78,11 @@ export default function HopeLibrary() {
       <div className="relative -mx-4 mb-6 h-36 overflow-hidden rounded-b-2xl">
         <ImgWithFallback src={images.flowers} alt="" className="w-full h-full object-cover" fallbackClassName="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
-        <div className="absolute bottom-5 left-5 right-5 flex items-center gap-4">
+        <div className="hope-hero-brand absolute bottom-5 left-5 right-5 flex items-center gap-4">
           <img src={logo} alt="XinBridge" className="w-12 h-12 rounded-full object-contain bg-white/20 shrink-0" />
           <div>
-            <h1 className="text-xl font-semibold text-white tracking-tight animate-fade-in-up" style={{ letterSpacing: '-0.02em' }}>{String(hope.title)}</h1>
-            <p className="text-sm text-white/90 mt-1 animate-fade-in-up stagger-1">{String(hope.subtitle)}</p>
+            <h1 className="text-xl font-semibold text-white tracking-tight animate-fade-in-up no-underline" style={{ letterSpacing: '-0.02em' }}>{String(hope.title)}</h1>
+            <p className="text-sm text-white/90 mt-1 animate-fade-in-up stagger-1 no-underline">{String(hope.subtitle)}</p>
           </div>
         </div>
       </div>
@@ -91,21 +91,24 @@ export default function HopeLibrary() {
         <Link to={backTo} className="text-[var(--color-primary)] text-sm font-medium">← {String(t.back)}</Link>
       </header>
 
+      <div
+        className="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3 text-xs leading-relaxed text-amber-950/90 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100/90"
+        role="note"
+      >
+        {String(hope.storiesDisclaimer ?? '')}
+      </div>
+
       <div className="flex flex-col gap-2 mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 hidden">
           <button
             onClick={() => handleRefresh()}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            disabled
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-[var(--color-primary)]/30 opacity-50 cursor-not-allowed"
           >
             <span className="relative flex items-center justify-center w-5 h-5 shrink-0">
-              {refreshing ? (
-                <Globe className="w-5 h-5 animate-pulse-radar text-[var(--color-primary)]" />
-              ) : (
-                <RefreshCw className="w-4 h-4 shrink-0" />
-              )}
+              <RefreshCw className="w-4 h-4 shrink-0" />
             </span>
-            {refreshing ? String(hope.globalScan ?? hope.refreshing) : String(hope.refresh)}
+            {String(hope.refresh)}
           </button>
           {refreshError && (
             <span className="text-xs text-red-600">{refreshError}</span>
@@ -203,7 +206,6 @@ function PulseStoryCard({
   regionLabel,
   relateLabel,
   onRelate,
-  locale,
 }: {
   story: HopeStory
   expanded: boolean
@@ -216,7 +218,6 @@ function PulseStoryCard({
   regionLabel: string | null
   relateLabel: string
   onRelate: () => void
-  locale: 'zh' | 'en'
 }) {
   return (
     <motion.div

@@ -43,7 +43,7 @@ export const translations: Record<Locale, Tr> = {
       breathing: { title: 'Breathing', subtitle: 'Calm your mind and body' },
       sleep: { title: 'Night Support', subtitle: 'When you can\'t sleep' },
       caregiver: { title: 'Family Contact', subtitle: 'Notify family when you need support' },
-      hope: { title: 'Hope Library', subtitle: 'Real recovery stories' },
+      hope: { title: 'Hope Library', subtitle: 'Stories of hope' },
       games: { title: 'Zen Toys', subtitle: 'Flow state · calm body and mind' },
     },
 
@@ -66,13 +66,37 @@ export const translations: Record<Locale, Tr> = {
     chat: {
       title: 'Heart Chat',
       subtitle: 'Talk to someone who understands',
-      loadingAI: 'Loading local AI...',
-      aiReady: 'Local AI ready',
-      modelLoading: 'Loading model...',
-      modelLoadingPercent: (n: number) => `Loading ${n}%`,
       placeholder: 'Type what you want to say...',
-      initialMessage: "Hello, I'm XinBridge. You can talk to me anytime.\n\nLocal AI is loading in the background for more natural conversation.",
-      noWebGPU: 'Local AI not supported in this environment. Using preset responses.',
+      initialMessage:
+        "Hello, I'm XinBridge. You can talk to me anytime.\n\nWhen you agree, replies are powered by OpenAI (ChatGPT API) or another configured cloud provider—your messages are sent over the internet. You'll be asked once before your first message.",
+      aiReady: 'Cloud AI ready (OpenAI / configured provider)',
+      chatDeclinedSubtitle: 'Using built-in supportive messages only. Agree to data use in chat to enable OpenAI-powered replies.',
+      consentTitle: 'AI chat & your privacy',
+      consentLead:
+        'To give you natural, supportive replies, XinBridge sends your conversation to a cloud AI service (typically OpenAI ChatGPT API, or a China-accessible provider when configured).',
+      consentWhat:
+        'What is sent: your message text and recent chat context, plus a system instruction so replies stay gentle and on-topic. No account password or symptom log leaves the app through this feature.',
+      consentWhoOpenAI:
+        'Outside mainland China, we use OpenAI (ChatGPT API), hosted in the United States, subject to OpenAI’s terms and privacy policy.',
+      consentWhoChina:
+        'For Chinese language, when configured, we use a China-accessible OpenAI-compatible provider (e.g. DeepSeek) so the service works reliably.',
+      consentMustAgree: 'We only send data after you tap Agree below.',
+      consentPrivacyNote: 'See our Privacy Policy for full details on collection and use.',
+      consentAccept: 'Agree and continue',
+      consentDecline: 'No thanks — built-in messages only',
+      consentFooter: 'You can change this anytime by clearing app data or reinstalling.',
+      apiUnavailable: 'Could not reach the AI service. Check your connection and try again.',
+      apiEmptyReply: 'The AI returned an empty reply. Please try again.',
+      apiNotConfigured: 'The server has no API key configured. The host must set OPENAI_API_KEY (or equivalent).',
+      declinedShortReply:
+        'You chose not to send chats to the cloud. To use OpenAI replies, clear app data and agree to data use when prompted.',
+      pendingConsentShortReply: 'Please choose Agree or Decline in the privacy prompt above before sending.',
+      privacyPolicyLabel: 'Privacy Policy',
+      newChat: 'New chat',
+      pastChats: 'Past chats',
+      pastChatsTitle: 'Your chats on this device',
+      noPastChats: 'No saved chats yet',
+      localOnlyHint: 'Saved on this device only',
     },
 
     symptoms: {
@@ -185,6 +209,8 @@ export const translations: Record<Locale, Tr> = {
       deepSleep: 'Deep Sleep',
       calmMind: 'Calm Mind',
       pureNature: 'Pure Nature',
+      forestWalk: 'Forest Walk',
+      riverFlow: 'River Flow',
       foundation: 'Foundation',
       environment: 'Environment',
       voice: 'Voice',
@@ -195,7 +221,8 @@ export const translations: Record<Locale, Tr> = {
       title: 'Family Contact',
       notifyTab: 'Notify',
       notesTab: 'Notes',
-      notifySubtitle: 'Choose or type what you want your family to know. They\'ll get a notification.',
+      notifySubtitle:
+        'Choose or type what you want to say, then pick call, text, or another app. The app opens your system dialer or messenger — it does not send anything by itself.',
       notesSubtitle: 'Some things are hard to say in person. Write them here to share:',
       notesExample: 'e.g. "I need quiet, not ignoring you" "Please don\'t ask too much, I\'ll share when ready" "I want porridge today"',
       quickSelect: 'Quick select',
@@ -218,12 +245,15 @@ export const translations: Record<Locale, Tr> = {
       contactWechat: 'WeChat',
       contactWhatsapp: 'WhatsApp',
       contactCancel: 'Cancel',
+      contactOpenSoftHint: 'No worries — try again when you like, or use your phone’s dialer.',
       pleaseSelectMessage: 'Please select or enter a message',
     },
 
     hope: {
       title: 'Hope Library',
-      subtitle: 'Recovery stories from real patients. Sources: ACS, Cancer Research UK, NCI.',
+      subtitle: 'Stories of hope and recovery—shared for encouragement only.',
+      storiesDisclaimer:
+        'Stories here are collected from public web search, third-party APIs, or curated demo content. We do not verify accuracy, authenticity, or completeness. They are offered in good faith to give hope and comfort only. XinBridge has no obligation to ensure they are true or up to date, and does not guarantee any medical outcome. This is not medical advice—always follow your care team.',
       read: 'Read',
       collapse: 'Collapse',
       all: 'All',
@@ -315,7 +345,7 @@ export const translations: Record<Locale, Tr> = {
       breathing: { title: '呼吸练习', subtitle: '平静身心' },
       sleep: { title: '夜晚陪伴', subtitle: '睡不着的时候' },
       caregiver: { title: '家人联系', subtitle: '需要支持时通知家人' },
-      hope: { title: '希望图书馆', subtitle: '真实康复故事' },
+      hope: { title: '希望图书馆', subtitle: '希望与康复故事' },
       games: { title: '禅趣玩具', subtitle: '进入心流，平静身心' },
     },
 
@@ -338,13 +368,37 @@ export const translations: Record<Locale, Tr> = {
     chat: {
       title: '心语陪伴',
       subtitle: '与理解你的人聊聊',
-      loadingAI: '正在加载本地 AI...',
-      aiReady: '本地 AI 已就绪',
-      modelLoading: '正在加载模型...',
-      modelLoadingPercent: (n: number) => `加载中 ${n}%`,
       placeholder: '输入你想说的...',
-      initialMessage: "你好，我是心桥。你可以随时和我聊聊，我会倾听。\n\n正在后台加载本地 AI，加载完成后将获得更自然的对话。",
-      noWebGPU: '当前环境不支持本地 AI，使用预设回复。',
+      initialMessage:
+        '你好，我是心桥。你可以随时和我聊聊，我会倾听。\n\n在您同意后，回复由 OpenAI（ChatGPT API）或您部署方配置的云端兼容接口生成，对话内容会通过互联网发送。首次发送前会请您阅读并同意数据使用说明。',
+      aiReady: '云端 AI 已就绪（OpenAI / 已配置服务商）',
+      chatDeclinedSubtitle: '当前仅使用应用内内置的安慰话术。在心语中同意数据使用后，可启用 OpenAI 等云端回复。',
+      consentTitle: 'AI 对话与隐私',
+      consentLead:
+        '为提供自然、有温度的回复，心桥会将对话发送至云端 AI 服务（通常为 OpenAI ChatGPT API；若已配置则可为境内兼容接口）。',
+      consentWhat:
+        '发送内容：您输入的文字、近期对话上下文，以及一条系统说明（确保回复温和、贴合陪伴场景）。账号密码与症状记录等不会通过此功能外传。',
+      consentWhoOpenAI:
+        '在非中国大陆网络环境下，我们使用 OpenAI（ChatGPT API），服务器位于美国，并受 OpenAI 条款与隐私政策约束。',
+      consentWhoChina:
+        '中文界面在已配置时，使用中国大陆可稳定访问的 OpenAI 兼容接口（如 DeepSeek 等），以保证可用性。',
+      consentMustAgree: '仅在您点击「同意并继续」后，我们才会发送上述数据。',
+      consentPrivacyNote: '完整说明请见《隐私政策》。',
+      consentAccept: '同意并继续',
+      consentDecline: '暂不使用 — 仅用内置话术',
+      consentFooter: '您可随时通过清除应用数据或重装来重置此项选择。',
+      apiUnavailable: '云端 AI 暂时无法连接，请检查网络后重试。',
+      apiEmptyReply: 'AI 返回了空内容，请稍后再试。',
+      apiNotConfigured: '服务端未配置 API 密钥，部署方需设置 OPENAI_API_KEY（或兼容接口）。',
+      declinedShortReply:
+        '您已选择不向云端发送对话。若要使用 OpenAI 回复，请清除应用数据，并在提示时同意数据使用。',
+      pendingConsentShortReply: '请先在上方的隐私弹窗中选择「同意」或「暂不使用」，再发送消息。',
+      privacyPolicyLabel: '隐私政策',
+      newChat: '新对话',
+      pastChats: '以往对话',
+      pastChatsTitle: '本机保存的对话',
+      noPastChats: '还没有保存的对话',
+      localOnlyHint: '仅保存在本机',
     },
 
     symptoms: {
@@ -457,6 +511,8 @@ export const translations: Record<Locale, Tr> = {
       deepSleep: '深度睡眠',
       calmMind: '平静思绪',
       pureNature: '纯自然',
+      forestWalk: '森林漫步',
+      riverFlow: '溪流潺潺',
       foundation: '基础',
       environment: '环境',
       voice: '人声',
@@ -467,7 +523,8 @@ export const translations: Record<Locale, Tr> = {
       title: '家人联系',
       notifyTab: '通知家人',
       notesTab: '想说的话',
-      notifySubtitle: '选择或输入你想让家人知道的话。他们会收到通知。',
+      notifySubtitle:
+        '选择或输入你想说的话，再选择电话、短信或其他方式。本应用只会打开系统拨号或信息界面，不会替你自动发出内容。',
       notesSubtitle: '有些话当面说不出口，写下来发给家人：',
       notesExample: '例如：「我需要安静，不是不想理你」「请别问太多，我会说的」「今天想喝粥」',
       quickSelect: '快速选择',
@@ -490,12 +547,15 @@ export const translations: Record<Locale, Tr> = {
       contactWechat: '微信',
       contactWhatsapp: 'WhatsApp',
       contactCancel: '取消',
+      contactOpenSoftHint: '没关系，稍后再试或用手机拨号都可以。',
       pleaseSelectMessage: '请选择或输入一条消息',
     },
 
     hope: {
       title: '希望图书馆',
-      subtitle: '来自真实患者的康复故事。来源：美国癌症协会、英国癌症研究、中国抗癌协会等。',
+      subtitle: '希望与康复故事——仅供鼓励与陪伴参考。',
+      storiesDisclaimer:
+        '本页故事来自网络公开检索、第三方接口或精选示例内容。我们不对其真实性、准确性或完整性做任何核实或担保，仅以善意提供，希望为您带来心理支持与希望感。心桥无义务保证内容属实或及时更新，亦不构成任何医疗建议或疗效承诺；诊疗请以医护团队为准。',
       read: '阅读',
       collapse: '收起',
       all: '全部',

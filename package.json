@@ -4,8 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "download-sounds": "node scripts/download-sounds.mjs",
+    "download-sounds:force": "node scripts/download-sounds.mjs --force",
+    "download-images": "node scripts/download-images.mjs",
+    "download-images:force": "node scripts/download-images.mjs --force",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run download-sounds && npm run download-images && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "cap:sync": "npm run build && npx cap sync",
@@ -16,11 +20,10 @@
     "cap:icons:native": "capacitor-assets generate --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#0c4a3e'"
   },
   "dependencies": {
+    "@capacitor/app-launcher": "^7.0.4",
     "@capacitor/core": "^7.0.0",
     "@capacitor/haptics": "^5.0.8",
     "@capacitor/motion": "^5.0.8",
-    "@huggingface/transformers": "^3.8.1",
-    "@mlc-ai/web-llm": "^0.2.82",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.38.0",
     "howler": "^2.2.4",

@@ -1,6 +1,12 @@
+import { useEffect, useRef, useState } from 'react'
 import { Phone, MessageSquare } from 'lucide-react'
+import { AppLauncher } from '@capacitor/app-launcher'
+import { Capacitor } from '@capacitor/core'
 import { useTranslation } from '../i18n/context'
 import { getItem } from '../utils/storage'
+
+/** Let the OS open Phone / Messages / browser before React paints the success screen (WebView + Capacitor). */
+const CONTACT_INTENT_DELAY_MS = 450
 
 export interface ContactFamilyModalProps {
   open: boolean
@@ -9,8 +15,6 @@ export interface ContactFamilyModalProps {
   message?: string
   /** Override family phone (e.g. from parent state) - otherwise reads from storage */
   familyPhoneOverride?: string
-  /** Called when user picks a contact option (call/sms/wechat/whatsapp) */
-  onContactChosen?: () => void
 }
 
 /** WeChat icon - simple chat bubbles */
@@ -32,50 +36,115 @@ function WhatsAppIcon({ className }: { className?: string }) {
   )
 }
 
-export default function ContactFamilyModal({ open, onClose, message = '', familyPhoneOverride, onContactChosen }: ContactFamilyModalProps) {
+export default function ContactFamilyModal({ open, onClose, message = '', familyPhoneOverride }: ContactFamilyModalProps) {
   const t = useTranslation()
   const ct = (t.caregiver || t) as Record<string, string>
   const familyPhone = familyPhoneOverride ?? getItem<string>('familyPhone', '')
+  const pendingCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [softLine, setSoftLine] = useState<string | null>(null)
 
   const defaultMessage = message || 'I\'m having a hard moment and may need support.'
   const smsBody = encodeURIComponent(defaultMessage)
 
-  const closeAndNotify = () => {
-    onContactChosen?.()
+  const clearPendingClose = () => {
+    if (pendingCloseTimerRef.current !== null) {
+      clearTimeout(pendingCloseTimerRef.current)
+      pendingCloseTimerRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    if (!open) clearPendingClose()
+  }, [open])
+
+  useEffect(() => {
+    if (open) setSoftLine(null)
+  }, [open])
+
+  useEffect(() => () => clearPendingClose(), [])
+
+  const closeAfterIntent = () => {
     onClose()
   }
 
-  const handleCall = () => {
-    if (familyPhone) {
-      window.location.href = `tel:${familyPhone.replace(/\D/g, '')}`
-    } else {
-      window.location.href = 'tel:'
+  /** Programmatic navigation (web / fallback). */
+  function openExternalUrl(href: string) {
+    const a = document.createElement('a')
+    a.href = href
+    a.rel = 'noopener noreferrer'
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      a.target = '_blank'
     }
-    closeAndNotify()
+    a.setAttribute('aria-hidden', 'true')
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  const scheduleCloseAfterIntent = () => {
+    clearPendingClose()
+    pendingCloseTimerRef.current = setTimeout(() => {
+      pendingCloseTimerRef.current = null
+      closeAfterIntent()
+    }, CONTACT_INTENT_DELAY_MS)
+  }
+
+  const softHint = () => String(ct.contactOpenSoftHint ?? 'No worries — try again when you like.')
+
+  /**
+   * Native: AppLauncher.openUrl may not complete (simulator, scheme, etc.). We show a gentle hint only.
+   */
+  const tryOpenAndFinish = async (href: string) => {
+    clearPendingClose()
+    setSoftLine(null)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { completed } = await AppLauncher.openUrl({ url: href })
+        if (!completed) {
+          setSoftLine(softHint())
+          return
+        }
+        scheduleCloseAfterIntent()
+      } catch {
+        setSoftLine(softHint())
+      }
+      return
+    }
+    openExternalUrl(href)
+    scheduleCloseAfterIntent()
+  }
+
+  const handleCall = () => {
+    void (async () => {
+      const digits = familyPhone.replace(/\D/g, '')
+      if (!digits) {
+        setSoftLine(softHint())
+        return
+      }
+      await tryOpenAndFinish(`tel:${digits}`)
+    })()
   }
 
   const handleSms = () => {
-    if (familyPhone) {
-      window.location.href = `sms:${familyPhone.replace(/\D/g, '')}?body=${smsBody}`
-    } else {
-      window.location.href = `sms:?body=${smsBody}`
-    }
-    closeAndNotify()
+    void (async () => {
+      const href = familyPhone
+        ? `sms:${familyPhone.replace(/\D/g, '')}?body=${smsBody}`
+        : `sms:?body=${smsBody}`
+      await tryOpenAndFinish(href)
+    })()
   }
 
   const handleWeChat = () => {
-    window.location.href = 'weixin://'
-    closeAndNotify()
+    void tryOpenAndFinish('weixin://')
   }
 
   const handleWhatsApp = () => {
-    if (familyPhone) {
-      const num = familyPhone.replace(/\D/g, '')
-      window.location.href = `https://wa.me/${num}?text=${smsBody}`
-    } else {
-      window.location.href = 'https://wa.me/'
-    }
-    closeAndNotify()
+    void (async () => {
+      const href = familyPhone
+        ? `https://wa.me/${familyPhone.replace(/\D/g, '')}?text=${smsBody}`
+        : 'https://wa.me/'
+      await tryOpenAndFinish(href)
+    })()
   }
 
   if (!open) return null
@@ -101,6 +170,7 @@ export default function ContactFamilyModal({ open, onClose, message = '', family
         </p>
         <div className="grid grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={handleCall}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--color-primary-subtle)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors"
           >
@@ -108,6 +178,7 @@ export default function ContactFamilyModal({ open, onClose, message = '', family
             <span className="text-sm font-medium">{ct.contactCall ?? 'Call'}</span>
           </button>
           <button
+            type="button"
             onClick={handleSms}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--color-primary-subtle)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors"
           >
@@ -115,6 +186,7 @@ export default function ContactFamilyModal({ open, onClose, message = '', family
             <span className="text-sm font-medium">{ct.contactSms ?? 'Text'}</span>
           </button>
           <button
+            type="button"
             onClick={handleWeChat}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--color-primary-subtle)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors"
           >
@@ -122,6 +194,7 @@ export default function ContactFamilyModal({ open, onClose, message = '', family
             <span className="text-sm font-medium">{ct.contactWechat ?? 'WeChat'}</span>
           </button>
           <button
+            type="button"
             onClick={handleWhatsApp}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--color-primary-subtle)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors"
           >
@@ -129,7 +202,13 @@ export default function ContactFamilyModal({ open, onClose, message = '', family
             <span className="text-sm font-medium">{ct.contactWhatsapp ?? 'WhatsApp'}</span>
           </button>
         </div>
+        {softLine && (
+          <p className="mt-4 text-xs text-center text-[var(--color-text-secondary)] leading-relaxed px-1" role="status" aria-live="polite">
+            {softLine}
+          </p>
+        )}
         <button
+          type="button"
           onClick={onClose}
           className="w-full mt-6 py-3 text-[var(--color-text-secondary)] text-sm hover:text-[var(--color-text)] transition-colors"
         >

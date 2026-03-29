@@ -89,12 +89,12 @@ export default function GameBreatheSync({ locale, freeMode, reportProgress, onMi
       <button
         type="button"
         onClick={onExit}
-        className="absolute top-4 right-4 z-10 px-3 py-2 rounded-xl bg-white/10 text-white/90 text-xs font-medium backdrop-blur-sm"
+        className="absolute top-safe right-4 z-10 px-3 py-2 rounded-xl bg-white/10 text-white/90 text-xs font-medium backdrop-blur-sm"
       >
         ← {locale === 'zh' ? '退出' : 'Exit'}
       </button>
 
-      <p className="absolute top-4 left-4 right-16 text-sm text-white/60 text-center">
+      <p className="absolute top-safe left-4 right-16 text-sm text-white/60 text-center">
         {locale === 'zh' ? '跟随节奏轻触，与呼吸同步' : 'Tap in sync with the breath'}
       </p>
 

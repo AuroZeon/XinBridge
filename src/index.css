@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /* Professional design system - healthcare/wellness */
-/* iOS notch/status bar: ensure min 44px when env returns 0 (Capacitor/WebKit delay) */
+/* iOS notch/status bar: ensure min 59px for Dynamic Island when env returns 0 */
 :root {
-  --safe-top: max(env(safe-area-inset-top, 0px), 44px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 59px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* Primary - refined teal (trust, calm, professional) */
@@ -201,6 +201,21 @@ body {
 
 #root { min-height: 100dvh; }
 
+/* Home / Hope hero: brand titles must never look like underlined links (e.g. AuroZeon publisher line) */
+.home-hero-brand a,
+.home-hero-brand a:visited,
+.hope-hero-brand a,
+.hope-hero-brand a:visited {
+  text-decoration: none !important;
+  text-underline-offset: 0;
+}
+.home-hero-brand h1,
+.home-hero-brand p,
+.hope-hero-brand h1,
+.hope-hero-brand p {
+  text-decoration: none;
+}
+
 /* Professional card interaction */
 .card-interactive {
   transition: transform var(--duration-normal) var(--ease-out),
@@ -231,11 +246,12 @@ body {
 
 /* Night filter - low blue light for 11 PM - 5 AM */
 .night-filter {
-  filter: sepia(0.15) hue-rotate(-5deg);
-  background-color: #1a1f2e;
+  filter: sepia(0.1) hue-rotate(-5deg);
+  background-color: #252b3b;
 }
-.night-filter .text-\[var\(--color-text\)\] { color: #94a3b8; }
-.night-filter .text-\[var\(--color-text-secondary\)\] { color: #64748b; }
+.night-filter .text-\[var\(--color-text\)\] { color: #e2e8f0; }
+.night-filter .text-\[var\(--color-text-secondary\)\] { color: #cbd5e1; }
+.night-filter .text-\[var\(--color-text-muted\)\] { color: #94a3b8; }
 
 /* Hope ticker marquee */
 @keyframes ticker-scroll {

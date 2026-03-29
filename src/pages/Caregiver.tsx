@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getItem, setItem } from '../utils/storage'
 import { useTranslation, useLocale } from '../i18n/context'
-import { CheckCircle2 } from '../components/icons'
 import { images } from '../data/mediaAssets'
 import { ImgWithFallback } from '../components/ImgWithFallback'
 import ContactFamilyModal from '../components/ContactFamilyModal'
@@ -16,7 +15,6 @@ export default function Caregiver() {
   const [tab, setTab] = useState<'notify' | 'notes'>('notify')
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null)
   const [customMessage, setCustomMessage] = useState('')
-  const [sent, setSent] = useState(false)
   const [contactModalOpen, setContactModalOpen] = useState(false)
   const [familyNote, setFamilyNote] = useState('')
   const [savedNotes, setSavedNotes] = useState<string[]>(() => getItem<string[]>('familyNotes', []))
@@ -58,19 +56,6 @@ export default function Caregiver() {
       setSavedNotes([trimmed, ...savedNotes])
       setFamilyNote('')
     }
-  }
-
-  if (sent) {
-    return (
-      <div className="min-h-dvh pt-safe pb-safe flex flex-col items-center justify-center px-6">
-        <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" strokeWidth={1.5} />
-        <h2 className="text-2xl font-semibold mb-2">{String(cg.sent)}</h2>
-        <p className="text-center text-[var(--color-text-secondary)] mb-8">{String(cg.sentMessage)}</p>
-        <button onClick={() => setSent(false)} className="text-[var(--color-primary)] font-semibold py-3">
-          {String(cg.sendAgain)}
-        </button>
-      </div>
-    )
   }
 
   return (
@@ -185,7 +170,6 @@ export default function Caregiver() {
         onClose={() => { setContactModalOpen(false); setContactMessage(''); }}
         message={contactMessage}
         familyPhoneOverride={familyPhone}
-        onContactChosen={() => setSent(true)}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 /**
- * Ambient & music tracks for Night Sanctuary Cover Flow
- * CC0 / royalty-free sources. URLs may require CORS for web.
+ * Ambient & music tracks - real recordings from OpenGameArt (CC0).
+ * Bundled via download-sounds script.
  */
 
 export interface SleepAmbientTrack {
@@ -19,7 +19,7 @@ export const SLEEP_AMBIENT_TRACKS: SleepAmbientTrack[] = [
     title: 'Celestial Harmony',
     titleZh: '天籁和声',
     type: 'celestialPads',
-    url: 'https://opengameart.org/sites/default/files/celestial_harmony_0.mp3',
+    url: 'celestial-pads',
     attribution: 'Vitalezzz - CC0',
     attributionUrl: 'https://opengameart.org/content/celestial-harmony',
   },
@@ -28,7 +28,7 @@ export const SLEEP_AMBIENT_TRACKS: SleepAmbientTrack[] = [
     title: 'First Light Particles',
     titleZh: '晨光粒子',
     type: 'ambientPiano',
-    url: 'https://opengameart.org/sites/default/files/first_light_particles_0.wav',
+    url: 'ambient-piano',
     attribution: 'CC0 - OpenGameArt',
     attributionUrl: 'https://opengameart.org/content/first-light-particles-–-cc0-atmospheric-pianoambient-track',
   },
